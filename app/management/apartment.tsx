@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Dimensions, Linking, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { apartmentService } from '../../services/apartment';
 
 const { width } = Dimensions.get('window');
 
@@ -12,25 +12,86 @@ export default function ApartmentManagementScreen() {
     const router = useRouter();
 
     const [guestName, setGuestName] = useState('');
+    const [maintenanceTitle, setMaintenanceTitle] = useState('');
     const [maintenanceDesc, setMaintenanceDesc] = useState('');
-    const [isUnlocked, setIsUnlocked] = useState(false);
+    const [maintenanceCategory, setMaintenanceCategory] = useState('General');
+    const [loading, setLoading] = useState(false);
+    const [guests, setGuests] = useState<any[]>([]);
+    const [maintenanceHistory, setMaintenanceHistory] = useState<any[]>([]);
 
-    const handleUnlock = () => {
-        setIsUnlocked(true);
-        setTimeout(() => setIsUnlocked(false), 3000);
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const [guestData, maintenanceData] = await Promise.all([
+                apartmentService.listGuests(),
+                apartmentService.listMaintenance()
+            ]);
+            setGuests(guestData);
+            setMaintenanceHistory(maintenanceData);
+        } catch (error) {
+            console.error('Failed to load apartment data:', error);
+        }
     };
 
-    const handleRegisterGuest = () => {
+    const handleRegisterGuest = async () => {
         if (!guestName) return Alert.alert("Error", "Please enter guest name");
-        Alert.alert("Success", `${guestName} has been registered and security notified.`);
-        setGuestName('');
+        
+        setLoading(true);
+        try {
+            const response = await apartmentService.registerGuest({ 
+                guest_name: guestName,
+                purpose: 'Visit' 
+            });
+            Alert.alert("Success", response.message);
+            setGuestName('');
+            loadData();
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.message || "Failed to register guest");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSubmitMaintenance = () => {
-        if (!maintenanceDesc) return Alert.alert("Error", "Please describe the issue");
-        Alert.alert("Request Received", "Our facility team has been notified and will be with you shortly.");
-        setMaintenanceDesc('');
+    const handleSubmitMaintenance = async () => {
+        if (!maintenanceTitle || !maintenanceDesc) {
+            return Alert.alert("Error", "Please fill in all fields");
+        }
+        
+        setLoading(true);
+        try {
+            const response = await apartmentService.submitMaintenance({
+                category: maintenanceCategory,
+                title: maintenanceTitle,
+                description: maintenanceDesc,
+                priority: 'normal'
+            });
+            
+            Alert.alert(
+                "Request Received", 
+                response.message,
+                [
+                    { 
+                        text: "Contact via WhatsApp", 
+                        onPress: () => Linking.openURL(response.whatsapp_url) 
+                    },
+                    { text: "Done", style: 'cancel' }
+                ]
+            );
+            
+            setMaintenanceTitle('');
+            setMaintenanceDesc('');
+            loadData();
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.message || "Failed to submit request");
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const categories = ['General', 'AC', 'Plumbing', 'Electrical', 'Internet', 'Furniture', 'Cleaning'];
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -40,39 +101,13 @@ export default function ApartmentManagementScreen() {
                 </TouchableOpacity>
                 <View>
                     <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.heading }]}>Apartment Management</Text>
-                    <Text style={[styles.headerSub, { color: colors.text, opacity: 0.5 }]}>The Imperial Suite • Room 401</Text>
+                    <Text style={[styles.headerSub, { color: colors.text, opacity: 0.5 }]}>Resident Support & Guest Access</Text>
                 </View>
                 <View style={{ width: 44 }} />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {/* Access Key Section */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Digital Access Key</Text>
-                    <View style={[styles.keyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        <View style={styles.keyHeader}>
-                            <View style={[styles.keyIconContainer, { backgroundColor: isUnlocked ? '#27AE60' + '20' : colors.tint + '10' }]}>
-                                <Ionicons name={isUnlocked ? "lock-open" : "lock-closed"} size={32} color={isUnlocked ? "#27AE60" : colors.tint} />
-                            </View>
-                            <View>
-                                <Text style={[styles.keyTitle, { color: colors.text, fontFamily: fonts.heading }]}>Room Entry PIN</Text>
-                                <Text style={[styles.keyPIN, { color: colors.tint, fontFamily: fonts.heading }]}>8 4 2 1</Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity style={styles.unlockBtn} onPress={handleUnlock}>
-                            <LinearGradient
-                                colors={isUnlocked ? ['#27AE60', '#2ECC71'] : [colors.tint, '#6B2D5A']}
-                                style={styles.unlockBtnGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                            >
-                                <Ionicons name={isUnlocked ? "checkmark-circle" : "bluetooth"} size={20} color="#FFF" style={{ marginRight: 10 }} />
-                                <Text style={[styles.unlockBtnText, { fontFamily: fonts.button }]}>{isUnlocked ? "UNLOCKED" : "TAP TO UNLOCK (BLE)"}</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
+                
                 {/* Guest Registration */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
@@ -87,11 +122,28 @@ export default function ApartmentManagementScreen() {
                             value={guestName}
                             onChangeText={setGuestName}
                         />
-                        <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.tint }]} onPress={handleRegisterGuest}>
-                            <Ionicons name="add" size={24} color="#FFF" />
+                        <TouchableOpacity 
+                            style={[styles.addBtn, { backgroundColor: colors.tint }]} 
+                            onPress={handleRegisterGuest}
+                            disabled={loading}
+                        >
+                            {loading ? <ActivityIndicator color="#FFF" /> : <Ionicons name="add" size={24} color="#FFF" />}
                         </TouchableOpacity>
                     </View>
                     <Text style={[styles.inputSub, { color: colors.text }]}>Pre-registered guests will be granted access at the main gate.</Text>
+                    
+                    {guests.length > 0 && (
+                        <View style={styles.historyList}>
+                            {guests.slice(0, 3).map(guest => (
+                                <View key={guest.id} style={styles.historyItem}>
+                                    <Text style={[styles.historyName, { color: colors.text }]}>{guest.guest_name}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: guest.status === 'approved' ? '#27AE6020' : '#F39C1220' }]}>
+                                        <Text style={[styles.statusText, { color: guest.status === 'approved' ? '#27AE60' : '#F39C12' }]}>{guest.status}</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    )}
                 </View>
 
                 {/* Maintenance Request */}
@@ -100,10 +152,37 @@ export default function ApartmentManagementScreen() {
                         <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Maintenance Request</Text>
                         <Ionicons name="construct-outline" size={20} color={colors.tint} />
                     </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
+                        {categories.map(cat => (
+                            <TouchableOpacity 
+                                key={cat}
+                                onPress={() => setMaintenanceCategory(cat)}
+                                style={[
+                                    styles.catBtn, 
+                                    { borderColor: maintenanceCategory === cat ? colors.tint : colors.border },
+                                    maintenanceCategory === cat && { backgroundColor: colors.tint + '10' }
+                                ]}
+                            >
+                                <Text style={[styles.catText, { color: maintenanceCategory === cat ? colors.tint : colors.text }]}>{cat}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+
+                    <View style={[styles.inputGroup, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 15 }]}>
+                        <TextInput
+                            style={[styles.input, { color: colors.text, fontFamily: fonts.body }]}
+                            placeholder="Brief title (e.g. AC not cooling)"
+                            placeholderTextColor="#999"
+                            value={maintenanceTitle}
+                            onChangeText={setMaintenanceTitle}
+                        />
+                    </View>
+
                     <View style={[styles.textAreaContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <TextInput
                             style={[styles.textArea, { color: colors.text, fontFamily: fonts.body }]}
-                            placeholder="Describe the issue (e.g. AC cooling, plumbing...)"
+                            placeholder="Detailed description of the issue..."
                             placeholderTextColor="#999"
                             multiline
                             numberOfLines={4}
@@ -111,10 +190,31 @@ export default function ApartmentManagementScreen() {
                             onChangeText={setMaintenanceDesc}
                         />
                     </View>
-                    <TouchableOpacity style={[styles.submitBtn, { borderColor: colors.tint }]} onPress={handleSubmitMaintenance}>
-                        <Text style={[styles.submitBtnText, { color: colors.tint, fontFamily: fonts.button }]}>Submit Request</Text>
+                    <TouchableOpacity 
+                        style={[styles.submitBtn, { backgroundColor: colors.tint }]} 
+                        onPress={handleSubmitMaintenance}
+                        disabled={loading}
+                    >
+                        {loading ? <ActivityIndicator color="#FFF" /> : <Text style={[styles.submitBtnText, { color: '#FFF', fontFamily: fonts.button }]}>Submit & Contact WhatsApp</Text>}
                     </TouchableOpacity>
                 </View>
+
+                {maintenanceHistory.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading, marginBottom: 15 }]}>Recent Requests</Text>
+                        {maintenanceHistory.slice(0, 3).map(item => (
+                            <View key={item.id} style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <View style={styles.historyCardHeader}>
+                                    <Text style={[styles.historyCardTitle, { color: colors.text }]}>{item.title}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: item.status === 'resolved' ? '#27AE6020' : '#F39C1220' }]}>
+                                        <Text style={[styles.statusText, { color: item.status === 'resolved' ? '#27AE60' : '#F39C12' }]}>{item.status}</Text>
+                                    </View>
+                                </View>
+                                <Text style={[styles.historyCardDate, { color: colors.text }]}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -160,55 +260,6 @@ const styles = StyleSheet.create({
     sectionLabel: {
         fontSize: 16,
     },
-    keyCard: {
-        padding: 24,
-        borderRadius: 24,
-        borderWidth: 1,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-    },
-    keyHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 25,
-    },
-    keyIconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 20,
-    },
-    keyTitle: {
-        fontSize: 14,
-        opacity: 0.5,
-        marginBottom: 4,
-    },
-    keyPIN: {
-        fontSize: 32,
-        letterSpacing: 10,
-    },
-    unlockBtn: {
-        height: 54,
-    },
-    unlockBtnGradient: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 15,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    unlockBtnText: {
-        color: '#FFF',
-        fontSize: 14,
-        fontWeight: '700',
-        letterSpacing: 1,
-    },
     inputGroup: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -245,14 +296,73 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
     },
     submitBtn: {
-        height: 50,
+        height: 54,
         borderRadius: 15,
-        borderWidth: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
     submitBtnText: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    catScroll: {
+        marginBottom: 15,
+    },
+    catBtn: {
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 10,
+        borderWidth: 1,
+        marginRight: 10,
+    },
+    catText: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    historyList: {
+        marginTop: 15,
+    },
+    historyItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+    },
+    historyName: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    statusText: {
+        fontSize: 9,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    historyCard: {
+        padding: 15,
+        borderRadius: 15,
+        borderWidth: 1,
+        marginBottom: 10,
+    },
+    historyCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    historyCardTitle: {
         fontSize: 14,
         fontWeight: '600',
+        flex: 1,
+    },
+    historyCardDate: {
+        fontSize: 11,
+        opacity: 0.5,
     },
 });

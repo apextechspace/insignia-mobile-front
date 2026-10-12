@@ -8,7 +8,11 @@ export const serviceService = {
     },
 
     bookService: async (formData: FormData) => {
-        const response = await api.post('/service-bookings', formData);
+        const response = await api.post('/service-bookings', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            }
+        });
         return response.data;
     },
 

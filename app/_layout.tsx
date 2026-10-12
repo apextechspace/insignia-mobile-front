@@ -1,7 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -16,9 +16,9 @@ import { Poppins_400Regular, Poppins_600SemiBold } from '@expo-google-fonts/popp
 import Colors from '@/constants/Colors';
 import * as Notifications from 'expo-notifications';
 import { authService } from '@/services/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerForPushNotificationsAsync } from '@/utils/notifications';
 import { WishlistProvider } from '@/hooks/useWishlist';
+import { sessionService } from '@/services/session';
 
 // Root notifications handler is already set in utils/notifications.ts
 
@@ -73,6 +73,17 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    sessionService.setUnauthorizedHandler(() => {
+      router.replace('/login');
+    });
+
+    return () => {
+      sessionService.setUnauthorizedHandler(null);
+    };
+  }, [router]);
 
   useEffect(() => {
     // Register for push notifications
@@ -102,7 +113,7 @@ function RootLayoutNav() {
 
   const syncTokenWithBackend = async (token: string) => {
     try {
-      const authToken = await AsyncStorage.getItem('auth_token');
+      const authToken = await sessionService.getToken();
       if (authToken) {
         await authService.updatePushToken(token);
       }

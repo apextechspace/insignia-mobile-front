@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
@@ -8,18 +8,39 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 
 import { serviceService } from '../../services/services';
+import { paymentService } from '../../services/payment';
+import { sendLocalNotification } from '../../utils/notifications';
+import PaymentMethodSelector, { PaymentMethod } from '../../components/PaymentMethodSelector';
 
 const { width } = Dimensions.get('window');
 
 export default function ServicePaymentScreen() {
-    const { id, name, price, scheduled_at, notes } = useLocalSearchParams();
+    const { 
+        id, 
+        name, 
+        price, 
+        scheduled_at, 
+        notes, 
+        service_variant_id, 
+        type, 
+        check_in, 
+        check_out, 
+        guests, 
+        request_details,
+        flight_number,
+        terminal,
+        pickup_location,
+        destination 
+    } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const [receiptImage, setReceiptImage] = useState<string | null>(null);
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('opay');
+    const [receiptAsset, setReceiptAsset] = useState<any>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [serviceDetails, setServiceDetails] = useState<any>(null);
     const [reference] = useState(`SRV-${((typeof name === 'string' ? name : 'SVC')).substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
 
     const cleanPriceStr = (price as string || '0').replace(/[^0-9.]/g, '');
@@ -39,39 +60,118 @@ export default function ServicePaymentScreen() {
         });
 
         if (!result.canceled) {
-            setReceiptImage(result.assets[0].uri);
+            setReceiptAsset(result.assets[0]);
             Alert.alert("Success", "Proof of payment selected successfully.");
         }
     };
 
-    const handleFinish = async () => {
-        if (!receiptImage) {
+    const buildFormData = () => {
+        const formData = new FormData();
+        formData.append('service_id', String(id));
+        formData.append('notes', notes as string || 'Standard Request');
+        formData.append('scheduled_at', scheduled_at as string || new Date().toISOString());
+        formData.append('payment_reference', reference);
+        
+        if (service_variant_id) {
+            formData.append('service_variant_id', String(service_variant_id));
+        }
+
+        if (type === 'reservation') {
+            formData.append('check_in', check_in as string);
+            formData.append('check_out', check_out as string);
+            formData.append('guests', String(guests || 1));
+        }
+
+        if (type === 'request') {
+            formData.append('request_details', request_details as string || '');
+        }
+
+        if (flight_number) formData.append('flight_number', flight_number as string);
+        if (terminal) formData.append('terminal', terminal as string);
+        if (pickup_location) formData.append('pickup_location', pickup_location as string);
+        if (destination) formData.append('destination', destination as string);
+
+        return formData;
+    };
+
+    // ⚡ OPay Instant Concierge Payment
+    const handlePayWithOPay = async () => {
+        setIsLoading(true);
+        try {
+            // 1. Create booking in pending status
+            const formData = buildFormData();
+            const createdBooking = await serviceService.bookService(formData);
+
+            // 2. Initialize OPay
+            const opayData = await paymentService.initializeOPay('service_booking', createdBooking.id);
+
+            // 3. Open Cashier in in-app browser
+            await paymentService.openOPayCashier(opayData.cashier_url);
+
+            // 4. Verify payment
+            const verifyResult = await paymentService.verifyOPay(opayData.reference);
+
+            setServiceDetails({
+                id: createdBooking.id,
+                reference: opayData.reference,
+                amount: unitPrice,
+                method: 'opay',
+                isPaid: verifyResult.is_paid,
+                confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            });
+
+            await sendLocalNotification(
+                "Service Appointment Confirmed",
+                `Your concierge booking for ${name} has been processed via OPay.`
+            );
+
+            setIsSuccess(true);
+        } catch (error: any) {
+            console.error('OPay Service Error:', error);
+            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to process OPay payment.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 🏦 Manual Bank Transfer
+    const handleFinishManual = async () => {
+        if (!receiptAsset) {
             Alert.alert("Error", "Please upload proof of payment.");
             return;
         }
 
         setIsLoading(true);
         try {
-            const formData = new FormData();
-            formData.append('service_id', String(id));
-            formData.append('notes', `Schedule: ${scheduled_at}\nRequests: ${notes}`);
-            formData.append('payment_reference', reference);
-            // ServiceBooking array accepts scheduled_at, but we'll include it in notes since API parsing for datetime might be strict.
-            // If backend allows raw datetime string, we can pass scheduled_at. Let's rely on notes for guaranteed delivery.
+            const formData = buildFormData();
 
-            // Append file
-            const filename = receiptImage.split('/').pop() || 'receipt.jpg';
-            const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1]}` : `image`;
+            const uri = receiptAsset.uri;
+            const filename = uri.split('/').pop() || 'receipt.jpg';
+            const fileType = receiptAsset.mimeType || 'image/jpeg';
 
             formData.append('receipt', {
-                uri: receiptImage,
+                uri: uri,
                 name: filename,
-                type: type,
+                type: fileType,
             } as any);
 
-            await serviceService.bookService(formData);
-            setReceiptImage(null); // Clear state
+            const createdBooking = await serviceService.bookService(formData);
+
+            setServiceDetails({
+                id: createdBooking.id,
+                reference: reference,
+                amount: unitPrice,
+                method: 'bank_transfer',
+                isPaid: false,
+                confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            });
+
+            await sendLocalNotification(
+                "Service Request Placed",
+                `Your appointment for ${name} has been recorded. Concierge will verify the receipt.`
+            );
+
+            setReceiptAsset(null);
             setIsSuccess(true);
         } catch (error: any) {
             console.error('Failed to book service:', error);
@@ -83,136 +183,245 @@ export default function ServicePaymentScreen() {
 
     if (isSuccess) {
         return (
-            <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+            <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.successScroll}>
                 <View style={[styles.successCircle, { backgroundColor: colors.tint + '15' }]}>
-                    <Ionicons name="star" size={60} color={colors.tint} />
+                    <Ionicons name="sparkles" size={60} color={colors.tint} />
                 </View>
-                <Text style={[styles.successTitle, { color: colors.text, fontFamily: fonts.heading }]}>Concierge Confirmed</Text>
-                <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
-                    Your luxury service for {name} has been processed. Your lifestyle manager will review the request and deploy it according to your schedule.
+                <Text style={[styles.successTitle, { color: colors.text, fontFamily: fonts.heading }]}>
+                    {serviceDetails?.isPaid ? 'Concierge Confirmed' : 'Request Received'}
                 </Text>
+                <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
+                    {serviceDetails?.isPaid
+                        ? `Your luxury appointment for ${name} has been verified via OPay and added to your schedule.`
+                        : `Your request for ${name} has been submitted. Our concierge team will review the transfer.`}
+                </Text>
+
+                {/* 🧾 Executive Service Receipt Card */}
+                <View style={[styles.receiptCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <View style={styles.receiptHeader}>
+                        <Text style={[styles.receiptHeaderTitle, { color: colors.tint, fontFamily: fonts.heading }]}>
+                            INSIGNIA CONCIERGE RECEIPT
+                        </Text>
+                        <View style={[styles.statusBadge, { backgroundColor: serviceDetails?.isPaid ? '#27AE60' + '20' : '#F39C12' + '20' }]}>
+                            <Text style={[styles.statusBadgeText, { color: serviceDetails?.isPaid ? '#27AE60' : '#F39C12', fontFamily: fonts.button }]}>
+                                {serviceDetails?.isPaid ? 'CONFIRMED' : 'PENDING REVIEW'}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    <View style={styles.receiptRow}>
+                        <Text style={[styles.receiptKey, { color: colors.text }]}>Service</Text>
+                        <Text style={[styles.receiptValue, { color: colors.text, fontFamily: fonts.button }]}>{name}</Text>
+                    </View>
+
+                    {scheduled_at ? (
+                        <View style={styles.receiptRow}>
+                            <Text style={[styles.receiptKey, { color: colors.text }]}>Scheduled At</Text>
+                            <Text style={[styles.receiptValue, { color: colors.text, fontFamily: fonts.button }]}>
+                                {String(scheduled_at)}
+                            </Text>
+                        </View>
+                    ) : null}
+
+                    {pickup_location ? (
+                        <View style={styles.receiptRow}>
+                            <Text style={[styles.receiptKey, { color: colors.text }]}>Pickup Location</Text>
+                            <Text style={[styles.receiptValue, { color: colors.text }]}>{pickup_location}</Text>
+                        </View>
+                    ) : null}
+
+                    <View style={styles.receiptRow}>
+                        <Text style={[styles.receiptKey, { color: colors.text }]}>Payment Method</Text>
+                        <Text style={[styles.receiptValue, { color: colors.tint, fontFamily: fonts.button }]}>
+                            {serviceDetails?.method === 'opay' ? '⚡ OPay Instant Checkout' : '🏦 Bank Transfer'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.receiptRow}>
+                        <Text style={[styles.receiptKey, { color: colors.text }]}>Reference</Text>
+                        <Text style={[styles.receiptValue, { color: colors.text, fontSize: 12 }]}>{serviceDetails?.reference}</Text>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    <View style={styles.receiptRow}>
+                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>Total Paid</Text>
+                        <Text style={[styles.receiptTotalValue, { color: colors.tint, fontFamily: fonts.heading }]}>
+                            ₦{unitPrice.toLocaleString()}
+                        </Text>
+                    </View>
+                </View>
+
                 <TouchableOpacity
                     style={styles.homeBtn}
-                    onPress={() => router.replace('/(tabs)')}
+                    onPress={() => router.replace('/management/activities')}
                 >
                     <LinearGradient
-                        colors={[colors.tint, '#6B2D5A']}
+                        colors={[colors.tint, '#5D1031']}
                         style={styles.homeBtnGradient}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                     >
-                        <Text style={[styles.homeBtnText, { fontFamily: fonts.button }]}>Return to Dashboard</Text>
+                        <Text style={[styles.homeBtnText, { fontFamily: fonts.button }]}>View Personal Activities</Text>
                     </LinearGradient>
                 </TouchableOpacity>
-            </View>
+            </ScrollView>
         );
     }
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={28} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.heading }]}>Secure Concierge Transfer</Text>
+                <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.heading }]}>Concierge Payment</Text>
                 <View style={{ width: 44 }} />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={[styles.amountBox, { marginBottom: 20 }]}>
-                    <Text style={[styles.amountLabel, { color: colors.text }]}>Service Value</Text>
-                    <Text style={[styles.amountValue, { color: colors.tint, fontFamily: fonts.heading }]}>₦{Number(unitPrice).toLocaleString() || 0}</Text>
+                    <Text style={[styles.amountLabel, { color: colors.text }]}>Total Fee</Text>
+                    <Text style={[styles.amountValue, { color: colors.tint, fontFamily: fonts.heading }]}>₦{unitPrice.toLocaleString()}</Text>
                 </View>
 
-                {/* Instruction Summary */}
+                {/* Service Summary */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Service Synopsis</Text>
+                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Appointment Summary</Text>
                     <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailKey, { color: colors.text }]}>Service</Text>
                             <Text style={[styles.detailValue, { color: colors.text, fontFamily: fonts.button }]}>{name}</Text>
                         </View>
-                        <View style={styles.detailRow}>
-                            <Text style={[styles.detailKey, { color: colors.text }]}>Timeline</Text>
-                            <Text style={[styles.detailValue, { color: colors.text, fontFamily: fonts.button }]} numberOfLines={1}>{scheduled_at}</Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                            <Text style={[styles.detailKey, { color: colors.text }]}>Requests</Text>
-                            <Text style={[styles.detailValue, { color: colors.tint, fontFamily: fonts.button }]} numberOfLines={1}>{notes}</Text>
-                        </View>
+                        {scheduled_at ? (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailKey, { color: colors.text }]}>Date & Time</Text>
+                                <Text style={[styles.detailValue, { color: colors.text, fontFamily: fonts.button }]}>
+                                    {String(scheduled_at)}
+                                </Text>
+                            </View>
+                        ) : null}
+                        {pickup_location ? (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailKey, { color: colors.text }]}>Pickup</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>{pickup_location}</Text>
+                            </View>
+                        ) : null}
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Payment Transfer</Text>
-                    <View style={[styles.bankCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        <View style={styles.bankRow}>
-                            <Text style={[styles.bankKey, { color: colors.text }]}>Bank Name</Text>
-                            <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>First Executive Bank</Text>
+                {/* 💳 Payment Method Selector */}
+                <PaymentMethodSelector 
+                    selectedMethod={selectedMethod} 
+                    onSelect={setSelectedMethod} 
+                />
+
+                {selectedMethod === 'opay' ? (
+                    <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
+                        <View style={styles.opayNoticeHeader}>
+                            <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
+                            <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
+                                OPay Instant Settlement
+                            </Text>
                         </View>
-                        <View style={styles.bankRow}>
-                            <Text style={[styles.bankKey, { color: colors.text }]}>Account Number</Text>
-                            <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>0123 4567 8910</Text>
-                        </View>
-                        <View style={styles.bankRow}>
-                            <Text style={[styles.bankKey, { color: colors.text }]}>Account Name</Text>
-                            <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>Insignia Lifestyle Mgt</Text>
-                        </View>
-                        <View style={styles.bankRow}>
-                            <Text style={[styles.bankKey, { color: colors.text }]}>Reference</Text>
-                            <Text style={[styles.bankValue, { color: colors.tint, fontFamily: fonts.button }]}>{reference}</Text>
-                        </View>
+                        <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
+                            Instant confirmation for your concierge booking via OPay app, dedicated bank transfer, or debit card.
+                        </Text>
                     </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Upload Proof of Transfer</Text>
-                    <TouchableOpacity
-                        style={[styles.uploadBox, { backgroundColor: colors.card, borderColor: receiptImage ? colors.tint : colors.border, borderStyle: 'dashed' }]}
-                        onPress={handleUpload}
-                    >
-                        {receiptImage ? (
-                            <View style={styles.uploadedContent}>
-                                <Image source={{ uri: receiptImage }} style={{ width: 60, height: 60, borderRadius: 10, marginBottom: 10 }} />
-                                <Text style={[styles.uploadText, { color: colors.tint, fontFamily: fonts.button }]}>Receipt Sent</Text>
-                                <Text style={styles.uploadSub}>Tap to change</Text>
+                ) : (
+                    <>
+                        <View style={styles.section}>
+                            <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Corporate Bank Account</Text>
+                            <View style={[styles.bankCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <View style={styles.bankRow}>
+                                    <Text style={[styles.bankKey, { color: colors.text }]}>Bank Name</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>First Executive Bank</Text>
+                                </View>
+                                <View style={styles.bankRow}>
+                                    <Text style={[styles.bankKey, { color: colors.text }]}>Account Number</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>0123 4567 8910</Text>
+                                </View>
+                                <View style={styles.bankRow}>
+                                    <Text style={[styles.bankKey, { color: colors.text }]}>Account Name</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>Insignia Courts Group</Text>
+                                </View>
+                                <View style={styles.bankRow}>
+                                    <Text style={[styles.bankKey, { color: colors.text }]}>Reference</Text>
+                                    <Text style={[styles.bankValue, { color: colors.tint, fontFamily: fonts.button }]}>{reference}</Text>
+                                </View>
                             </View>
-                        ) : (
-                            <View style={styles.uploadPlaceholder}>
-                                <Ionicons name="cloud-upload-outline" size={40} color="#999" />
-                                <Text style={[styles.uploadText, { color: colors.text, fontFamily: fonts.button }]}>Upload Receipt</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
+                        </View>
 
-                <View style={[styles.infoBox, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
-                    <Ionicons name="information-circle-outline" size={20} color="#999" />
-                    <Text style={styles.infoText}>
-                        Your lifestyle manager will immediately begin preparations once the transfer is verified.
-                    </Text>
-                </View>
-
-                <View style={{ height: 120 }} />
+                        <View style={styles.section}>
+                            <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Upload Payment Receipt</Text>
+                            <TouchableOpacity
+                                style={[styles.uploadBox, { backgroundColor: colors.card, borderColor: receiptAsset ? colors.tint : colors.border, borderStyle: 'dashed' }]}
+                                onPress={handleUpload}
+                            >
+                                {receiptAsset ? (
+                                    <View style={styles.uploadedContent}>
+                                        <Image source={{ uri: receiptAsset.uri }} style={{ width: 60, height: 60, borderRadius: 10, marginBottom: 10 }} />
+                                        <Text style={[styles.uploadText, { color: colors.tint, fontFamily: fonts.button }]}>Receipt Selected</Text>
+                                        <Text style={styles.uploadSub}>Tap to replace receipt</Text>
+                                    </View>
+                                ) : (
+                                    <View style={styles.uploadPlaceholder}>
+                                        <Ionicons name="cloud-upload-outline" size={40} color="#999" />
+                                        <Text style={[styles.uploadText, { color: colors.text, fontFamily: fonts.button }]}>Upload Transfer Receipt</Text>
+                                        <Text style={styles.uploadSub}>JPG or PNG (Max 5MB)</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </>
+                )}
             </ScrollView>
 
-            <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 25) }]}>
-                <TouchableOpacity
-                    style={[styles.finishBtn, { opacity: receiptImage && !isLoading ? 1 : 0.5 }]}
-                    disabled={!receiptImage || isLoading}
-                    onPress={handleFinish}
-                >
-                    <LinearGradient
-                        colors={[colors.tint, '#6B2D5A']}
-                        style={styles.finishBtnGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
+            <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
+                {selectedMethod === 'opay' ? (
+                    <TouchableOpacity
+                        style={styles.finishBtn}
+                        disabled={isLoading}
+                        onPress={handlePayWithOPay}
                     >
-                        <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
-                            {isLoading ? 'Processing...' : 'Confirm Request'}
-                        </Text>
-                    </LinearGradient>
-                </TouchableOpacity>
+                        <LinearGradient
+                            colors={[colors.tint, '#5D1031']}
+                            style={styles.finishBtnGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <View style={styles.btnRow}>
+                                    <Ionicons name="flash" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                                    <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
+                                        Pay ₦{unitPrice.toLocaleString()} with OPay
+                                    </Text>
+                                </View>
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity
+                        style={[styles.finishBtn, { opacity: receiptAsset ? 1 : 0.5 }]}
+                        disabled={!receiptAsset || isLoading}
+                        onPress={handleFinishManual}
+                    >
+                        <LinearGradient
+                            colors={[colors.tint, '#6B2D5A']}
+                            style={styles.finishBtnGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                        >
+                            <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
+                                {isLoading ? 'Submitting Receipt...' : 'Confirm Appointment'}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -220,38 +429,59 @@ export default function ServicePaymentScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
     backBtn: { width: 44, height: 44, justifyContent: 'center' },
     headerTitle: { fontSize: 18 },
     scrollContent: { padding: 25 },
-    amountBox: { alignItems: 'center', marginBottom: 40 },
-    amountLabel: { fontSize: 14, opacity: 0.6, marginBottom: 5 },
-    amountValue: { fontSize: 36 },
-    detailsCard: { borderRadius: 20, borderWidth: 1, padding: 20 },
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    detailKey: { fontSize: 13, opacity: 0.5 },
+    successScroll: { padding: 25, alignItems: 'center', justifyContent: 'center', minHeight: '100%' },
+    amountBox: { alignItems: 'center', marginBottom: 20 },
+    amountLabel: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.6, marginBottom: 5 },
+    amountValue: { fontSize: 32 },
+    section: { marginBottom: 25 },
+    sectionLabel: { fontSize: 16, marginBottom: 12, letterSpacing: 0.5 },
+    detailsCard: { borderRadius: 16, padding: 18, borderWidth: 1 },
+    detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+    detailKey: { fontSize: 13, opacity: 0.7 },
     detailValue: { fontSize: 14 },
-    section: { marginBottom: 35 },
-    sectionLabel: { fontSize: 16, marginBottom: 15 },
-    bankCard: { borderRadius: 20, borderWidth: 1, padding: 20 },
-    bankRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-    bankKey: { fontSize: 13, opacity: 0.5 },
+    bankCard: { borderRadius: 16, padding: 18, borderWidth: 1 },
+    bankRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+    bankKey: { fontSize: 13, opacity: 0.7 },
     bankValue: { fontSize: 14 },
-    uploadBox: { height: 160, borderRadius: 20, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+    uploadBox: { height: 140, borderRadius: 16, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
     uploadPlaceholder: { alignItems: 'center' },
     uploadedContent: { alignItems: 'center' },
-    uploadText: { fontSize: 16, marginTop: 10 },
-    uploadSub: { fontSize: 12, color: '#999', marginTop: 5 },
-    infoBox: { flexDirection: 'row', padding: 15, borderRadius: 12, marginBottom: 20 },
-    infoText: { flex: 1, fontSize: 12, color: '#666', marginLeft: 10, lineHeight: 18 },
-    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 25, borderTopWidth: 1 },
-    finishBtn: { height: 54 },
-    finishBtnGradient: { width: '100%', height: '100%', borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
-    finishBtnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-    successCircle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', marginBottom: 30 },
-    successTitle: { fontSize: 28, textAlign: 'center', marginBottom: 15 },
-    successMsg: { fontSize: 16, textAlign: 'center', lineHeight: 24, opacity: 0.7, paddingHorizontal: 40, marginBottom: 40 },
-    homeBtn: { height: 54, width: width - 80 },
-    homeBtnGradient: { width: '100%', height: '100%', borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
-    homeBtnText: { color: '#FFF', fontSize: 16, fontWeight: '600' }
+    uploadText: { fontSize: 14, marginTop: 8 },
+    uploadSub: { fontSize: 11, color: '#999', marginTop: 4 },
+    footer: { padding: 20, borderTopWidth: 1 },
+    finishBtn: { borderRadius: 14, overflow: 'hidden' },
+    finishBtnGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
+    finishBtnText: { color: '#FFF', fontSize: 15, letterSpacing: 1 },
+    btnRow: { flexDirection: 'row', alignItems: 'center' },
+    opayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
+    opayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    opayNoticeTitle: { fontSize: 16, marginLeft: 10 },
+    opayNoticeText: { fontSize: 13, opacity: 0.7, lineHeight: 18 },
+    successCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    successTitle: { fontSize: 22, marginBottom: 10, textAlign: 'center' },
+    successMsg: { fontSize: 14, textAlign: 'center', opacity: 0.7, lineHeight: 22, paddingHorizontal: 20, marginBottom: 25 },
+    receiptCard: { width: '100%', borderRadius: 20, padding: 22, borderWidth: 1, marginBottom: 30 },
+    receiptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    receiptHeaderTitle: { fontSize: 14, letterSpacing: 1 },
+    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    statusBadgeText: { fontSize: 11 },
+    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 12 },
+    receiptRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+    receiptKey: { fontSize: 13, opacity: 0.6 },
+    receiptValue: { fontSize: 13 },
+    receiptTotalKey: { fontSize: 16 },
+    receiptTotalValue: { fontSize: 18 },
+    homeBtn: { width: '100%', borderRadius: 14, overflow: 'hidden' },
+    homeBtnGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
+    homeBtnText: { color: '#FFF', fontSize: 15, letterSpacing: 1 },
 });

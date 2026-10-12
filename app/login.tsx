@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { useRouter } from 'expo-router';
 import { useTheme } from '../hooks/useTheme';
 import { authService } from '../services/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sessionService } from '../services/session';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -22,7 +22,7 @@ export default function LoginScreen() {
         try {
             const response = await authService.login({ email, password });
             if (response.access_token) {
-                await AsyncStorage.setItem('auth_token', response.access_token);
+                await sessionService.setToken(response.access_token);
             }
             router.replace('/branch-selection');
         } catch (error: any) {

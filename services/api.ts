@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sessionService } from './session';
 
 // For real devices, use your machine's local IP address
-export const BACKEND_URL = 'http://192.168.1.121:8000';
+export const BACKEND_URL = 'http://192.168.8.199:8000';
 const DEV_API_URL = `${BACKEND_URL}/api`;
 
 const api = axios.create({
@@ -12,13 +12,13 @@ const api = axios.create({
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
-    timeout: 10000, // 10 seconds timeout
+    timeout: 25000, // 25 seconds timeout for gateway calls
 });
 
 // Request interceptor
 api.interceptors.request.use(
     async (config) => {
-        const token = await AsyncStorage.getItem('auth_token');
+        const token = await sessionService.getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -34,10 +34,17 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         if (error.response) {
             // Server responded with error code
             console.error('API Error:', error.response.status, error.response.data);
+
+            const requestUrl = String(error.config?.url || '');
+            const isAuthScreenRequest = requestUrl.includes('/login') || requestUrl.includes('/register');
+
+            if (error.response.status === 401 && !isAuthScreenRequest) {
+                await sessionService.handleUnauthorized();
+            }
         } else if (error.request) {
             // Request made but no response
             console.error('Network Error:', error.request);

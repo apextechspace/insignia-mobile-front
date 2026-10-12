@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Switch } f
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../../services/auth';
 import { BACKEND_URL } from '../../services/api';
+import { sessionService } from '../../services/session';
 
 export default function ProfileScreen() {
     const { colors, fonts } = useTheme();
@@ -51,6 +51,9 @@ export default function ProfileScreen() {
                 </View>
                 <Text style={[styles.userName, { color: colors.text, fontFamily: fonts.heading }]}>{user?.name || 'Guest User'}</Text>
                 <Text style={[styles.userEmail, { color: colors.text, fontFamily: fonts.body }]}>{user?.email || 'N/A'}</Text>
+                {user?.phone && (
+                    <Text style={[styles.userPhone, { color: colors.text, fontFamily: fonts.body }]}>{user.phone}</Text>
+                )}
                 <TouchableOpacity 
                     style={[styles.editBtn, { borderColor: colors.tint }]}
                     onPress={() => {
@@ -78,8 +81,9 @@ export default function ProfileScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Your Activity</Text>
                 <MenuItem icon="calendar-outline" title="Room Bookings" subtitle="Manage your stays" onPress={() => router.push('/management/bookings')} />
                 <MenuItem icon="cart-outline" title="Shop Orders" subtitle="Track luxury purchases" onPress={() => router.push('/management/orders')} />
-                <MenuItem icon="restaurant-outline" title="Service Orders" subtitle="Food, Massage, Dispatch" onPress={() => router.push('/management/service-orders')} />
-                <MenuItem icon="heart-outline" title="Wishlist" subtitle="Your favorite apartments" onPress={() => router.push('/management/wishlist')} />
+                <MenuItem icon="restaurant-outline" title="Service Orders" subtitle="Food, Massage, Transport" onPress={() => router.push('/management/service-orders')} />
+                <MenuItem icon="notifications-outline" title="Notifications" subtitle="Booking updates & alerts" onPress={() => router.push('/management/notifications')} />
+                <MenuItem icon="heart-outline" title="My Favorites" subtitle="Saved services, rooms & products" onPress={() => router.push('/management/wishlist')} />
             </View>
 
             <View style={styles.section}>
@@ -91,15 +95,21 @@ export default function ProfileScreen() {
                     </View>
                     <Switch value={true} trackColor={{ true: colors.tint }} />
                 </View>
-                <MenuItem icon="card-outline" title="Payment Methods" subtitle="Visa •••• 4242" />
-                <MenuItem icon="shield-checkmark-outline" title="Privacy & Security" />
+                <MenuItem icon="card-outline" title="Payment Methods" subtitle="Manage saved cards" onPress={() => router.push('/management/payment-methods')} />
+                <MenuItem icon="shield-checkmark-outline" title="Security PIN" subtitle={user?.has_security_pin ? 'PIN is active' : 'Set up your PIN'} onPress={() => router.push(user?.has_security_pin ? '/management/security-check' : '/management/create-pin')} />
             </View>
 
             <TouchableOpacity
                 style={styles.logoutBtn}
                 onPress={async () => {
-                    await AsyncStorage.removeItem('auth_token');
-                    router.replace('/login');
+                    try {
+                        await authService.logout();
+                    } catch (error) {
+                        console.warn('Logout request failed, clearing local session anyway.', error);
+                    } finally {
+                        await sessionService.clearToken();
+                        router.replace('/login');
+                    }
                 }}
             >
                 <Ionicons name="log-out-outline" size={22} color="#E74C3C" />
@@ -141,6 +151,11 @@ const styles = StyleSheet.create({
     userEmail: {
         fontSize: 14,
         opacity: 0.6,
+        marginBottom: 4,
+    },
+    userPhone: {
+        fontSize: 13,
+        opacity: 0.45,
         marginBottom: 20,
     },
     editBtn: {

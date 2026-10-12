@@ -1,7 +1,10 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image, Dimensions } from 'react-native';
+const { width } = Dimensions.get('window');
 import { useRouter } from 'expo-router';
 import { useTheme } from '../hooks/useTheme';
+import { authService } from '../services/auth';
+import { sessionService } from '../services/session';
 
 export default function SplashScreen() {
     const router = useRouter();
@@ -9,22 +12,54 @@ export default function SplashScreen() {
     const fadeAnim = new Animated.Value(0);
 
     useEffect(() => {
+        let isMounted = true;
+
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 1500,
             useNativeDriver: true,
         }).start();
 
-        const timer = setTimeout(() => {
-            router.replace('/login');
-        }, 3000);
+        const bootstrapSession = async () => {
+            await new Promise(resolve => setTimeout(resolve, 1800));
 
-        return () => clearTimeout(timer);
+            const token = await sessionService.getToken();
+            if (!token) {
+                if (isMounted) {
+                    router.replace('/login');
+                }
+                return;
+            }
+
+            try {
+                await authService.getUser();
+                if (isMounted) {
+                    router.replace('/branch-selection');
+                }
+            } catch (error) {
+                console.error('Stored session is no longer valid:', error);
+                await sessionService.clearToken();
+                if (isMounted) {
+                    router.replace('/login');
+                }
+            }
+        };
+
+        bootstrapSession();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
+                <Image 
+                    source={require('../assets/images/logo.png')} 
+                    style={styles.logo} 
+                    resizeMode="contain" 
+                />
                 <Text style={[styles.title, { color: colors.tint, fontFamily: fonts.heading }]}>
                     INSIGNIA
                 </Text>
@@ -45,6 +80,11 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    logo: {
+        width: 150,
+        height: 50,
+        marginBottom: 20,
     },
     title: {
         fontSize: 42,

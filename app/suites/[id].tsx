@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { roomService } from '../../services/rooms';
 import { getAmenityData } from '../../utils/amenities';
+import { useWishlist } from '../../hooks/useWishlist';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +17,7 @@ export default function SuiteDetailScreen() {
 
     const [room, setRoom] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const { toggleWishlist, isInWishlist } = useWishlist();
 
     useEffect(() => {
         const fetchRoom = async () => {
@@ -73,6 +75,16 @@ export default function SuiteDetailScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.shareBtn}>
                         <Ionicons name="share-social-outline" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.heartBtn}
+                        onPress={() => toggleWishlist(room.id)}
+                    >
+                        <Ionicons 
+                            name={isInWishlist(room.id) ? "heart" : "heart-outline"} 
+                            size={24} 
+                            color={isInWishlist(room.id) ? colors.tint : "#FFF"} 
+                        />
                     </TouchableOpacity>
 
                     <View style={styles.imageIndicators}>
@@ -191,6 +203,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     shareBtn: {
+        position: 'absolute',
+        top: 60,
+        right: 80,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    heartBtn: {
         position: 'absolute',
         top: 60,
         right: 20,

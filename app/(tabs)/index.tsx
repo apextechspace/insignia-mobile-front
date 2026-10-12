@@ -4,17 +4,19 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useWishlist } from '../../hooks/useWishlist';
 
 import { authService } from '../../services/auth';
+import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
 const SERVICES = [
-  { id: '1', title: 'Rooms and Suites', icon: 'bed-outline', type: 'ion', route: '/(tabs)/suites', gradient: ['#4B1D3F', '#6B2D5A'] },
-  { id: '2', title: 'Dining', icon: 'restaurant-outline', type: 'ion', route: '/(tabs)/services', category: 'Food', gradient: ['#8E44AD', '#A569BD'] },
-  { id: '9', title: 'Concierge', icon: 'walk-outline', type: 'ion', route: '/(tabs)/services', category: 'Errand', gradient: ['#1ABC9C', '#16A085'] },
-  { id: '3', title: 'Wellness', icon: 'leaf-outline', type: 'ion', route: '/(tabs)/services', category: 'Massage', gradient: ['#27AE60', '#58D68D'] },
-  { id: '10', title: 'Experiences', icon: 'sparkles-outline', type: 'ion', route: '/(tabs)/services', category: 'Experience', gradient: ['#D4AF37', '#996515'] },
+  { id: '1', title: 'Rooms and Suites', icon: 'bed-outline', type: 'ion', route: '/(tabs)/suites', gradient: ['#4A0E2E', '#5D1031'] },
+  { id: '2', title: 'Dining', icon: 'restaurant-outline', type: 'ion', route: '/(tabs)/services', category: 'Dining', gradient: ['#8E44AD', '#A569BD'] },
+  { id: '9', title: 'Concierge', icon: 'walk-outline', type: 'ion', route: '/(tabs)/services', category: 'Concierge', gradient: ['#1ABC9C', '#16A085'] },
+  { id: '3', title: 'Wellness', icon: 'leaf-outline', type: 'ion', route: '/(tabs)/services', category: 'Wellness', gradient: ['#27AE60', '#58D68D'] },
+  { id: '10', title: 'Experiences', icon: 'sparkles-outline', type: 'ion', route: '/(tabs)/services', category: 'Experiences', gradient: ['#D4AF37', '#996515'] },
   { id: '12', title: 'Transport', icon: 'car-outline', type: 'ion', route: '/(tabs)/services', category: 'Transport', gradient: ['#34495E', '#1C2833'] },
   { id: '8', title: 'Shop', icon: 'cart-outline', type: 'ion', route: '/(tabs)/shop', gradient: ['#F39C12', '#E67E22'] },
   { id: '6', title: 'Workspace', icon: 'laptop-outline', type: 'ion', route: '/(tabs)/services', category: 'Workspace', gradient: ['#2C3E50', '#566573'] },
@@ -29,17 +31,25 @@ export default function HomeScreen() {
   const [hasActiveBooking] = React.useState(true); // Toggle true for presentational mockup
   const [pinCode, setPinCode] = React.useState('8 4 2 1');
   const [timeLeft, setTimeLeft] = React.useState(60);
+  const { toggleWishlist, isInWishlist } = useWishlist();
+
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
   React.useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const userData = await authService.getUser();
+        const [userData, notifData] = await Promise.all([
+          authService.getUser(),
+          api.get('/notifications')
+        ]);
         setUserProfile(userData);
+        const unread = notifData.data.data.filter((n: any) => !n.read_at).length;
+        setUnreadCount(unread);
       } catch (error) {
         console.log('Guest user or session expired');
       }
     };
-    fetchUser();
+    fetchData();
   }, []);
 
   React.useEffect(() => {
@@ -112,14 +122,14 @@ export default function HomeScreen() {
           onPress={() => router.push('/management/notifications')}
         >
           <Ionicons name="notifications-outline" size={22} color={colors.text} />
-          <View style={[styles.notificationDot, { backgroundColor: '#E74C3C' }]} />
+          {unreadCount > 0 && <View style={[styles.notificationDot, { backgroundColor: '#E74C3C' }]} />}
         </TouchableOpacity>
       </View>
 
       {hasActiveBooking && (
         <View style={styles.keycardContainer}>
           <LinearGradient
-            colors={[colors.tint, '#6B2D5A']}
+            colors={[colors.tint, '#5D1031']}
             style={styles.keycardGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -218,6 +228,16 @@ export default function HomeScreen() {
                 <View style={[styles.productBadge, { backgroundColor: colors.tint + '20' }]}>
                   <Text style={[styles.productBadgeText, { color: colors.tint, fontFamily: fonts.button }]}>NEW</Text>
                 </View>
+                <TouchableOpacity 
+                  style={styles.wishlistBtn}
+                  onPress={() => toggleWishlist(item.id)}
+                >
+                  <Ionicons 
+                    name={isInWishlist(item.id) ? "heart" : "heart-outline"} 
+                    size={16} 
+                    color={isInWishlist(item.id) ? colors.tint : "#FFF"} 
+                  />
+                </TouchableOpacity>
               </View>
               <Text style={[styles.productName, { color: colors.text, fontFamily: fonts.body }]} numberOfLines={1}>{item.name}</Text>
               <View style={styles.productFooter}>
@@ -504,5 +524,17 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: 16,
+  },
+  wishlistBtn: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
 });

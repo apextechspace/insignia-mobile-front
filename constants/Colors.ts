@@ -17,7 +17,7 @@ export default {
   dark: {
     text: '#FFFFFF',
     background: '#1A1A1A',
-    tint: '#D4A5C6', // Lighter plum for dark mode tint
+    tint: brandPrimary,
     tabIconDefault: '#7D7D7D',
     tabIconSelected: '#FFFFFF',
     card: '#2D2D2D',

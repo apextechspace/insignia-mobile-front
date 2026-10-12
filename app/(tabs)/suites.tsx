@@ -4,6 +4,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useWishlist } from '../../hooks/useWishlist';
 
 import { roomService } from '../../services/rooms';
 import { getAmenityData } from '../../utils/amenities';
@@ -13,6 +14,7 @@ export default function RoomSelectionScreen() {
   const router = useRouter();
   const [rooms, setRooms] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   React.useEffect(() => {
     loadRooms();
@@ -67,6 +69,16 @@ export default function RoomSelectionScreen() {
             <Text style={[styles.tagText, { fontFamily: fonts.button }]}>{item.tag}</Text>
           </View>
         )}
+        <TouchableOpacity 
+          style={styles.wishlistBtn}
+          onPress={() => toggleWishlist(item.id)}
+        >
+          <Ionicons 
+            name={isInWishlist(item.id) ? "heart" : "heart-outline"} 
+            size={22} 
+            color={isInWishlist(item.id) ? colors.tint : "#FFF"} 
+          />
+        </TouchableOpacity>
       </View>
       <View style={styles.roomInfo}>
         <View style={styles.roomHeader}>
@@ -269,5 +281,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  wishlistBtn: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
 });

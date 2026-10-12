@@ -4,10 +4,11 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useWishlist } from '../../hooks/useWishlist';
 
 const { width } = Dimensions.get('window');
 
-const CATEGORIES = ['All', 'Apartment', 'Food', 'Massage', 'Dispatch', 'Errand', 'Workspace', 'Stock'];
+const CATEGORIES = ['All', 'Interiors', 'Dining', 'Wellness', 'Concierge', 'Transport', 'Experiences', 'Workspace'];
 
 import { serviceService } from '../../services/services';
 
@@ -19,6 +20,7 @@ export default function ServicesHub() {
     const [services, setServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [bookingId, setBookingId] = useState<string | null>(null);
+    const { toggleWishlist, isInWishlist } = useWishlist();
 
     useEffect(() => {
         loadServices();
@@ -36,9 +38,27 @@ export default function ServicesHub() {
     };
 
     const handleBookService = (service: any) => {
+        if (service.type === 'order') {
+            router.push({
+                pathname: '/services/dining',
+                params: { 
+                    id: service.id,
+                    name: service.name
+                }
+            });
+            return;
+        }
+
         router.push({
             pathname: '/services/request',
-            params: { id: service.id, name: service.name, price: service.price, image: service.image }
+            params: { 
+                id: service.id, 
+                name: service.name, 
+                price: service.price, 
+                image: service.image,
+                category: service.category,
+                description: service.description
+            }
         });
     };
 
@@ -63,9 +83,19 @@ export default function ServicesHub() {
                 <View style={[styles.categoryBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
                     <Text style={[styles.categoryBadgeText, { color: colors.tint, fontFamily: fonts.button }]}>{item.category}</Text>
                 </View>
+                <TouchableOpacity 
+                    style={styles.wishlistBtn}
+                    onPress={() => toggleWishlist(item.id)}
+                >
+                    <Ionicons 
+                        name={isInWishlist(item.id) ? "heart" : "heart-outline"} 
+                        size={20} 
+                        color={isInWishlist(item.id) ? colors.tint : "#FFF"} 
+                    />
+                </TouchableOpacity>
             </View>
             <View style={styles.serviceInfo}>
-                <Text style={[styles.serviceName, { color: colors.text, fontFamily: fonts.heading }]} numberOfLines={1}>{item.name}</Text>
+                <Text style={[styles.serviceName, { color: colors.text, fontFamily: fonts.heading }]} numberOfLines={2}>{item.name}</Text>
                 <View style={styles.priceRow}>
                     <Text style={[styles.servicePrice, { color: colors.tint, fontFamily: fonts.button, flex: 1, marginRight: 5 }]} numberOfLines={1}>{item.price}</Text>
                     <TouchableOpacity
@@ -232,6 +262,7 @@ const styles = StyleSheet.create({
     serviceName: {
         fontSize: 15,
         marginBottom: 12,
+        height: 40, // Allows for exactly 2 lines while keeping alignment
     },
     priceRow: {
         flexDirection: 'row',
@@ -250,5 +281,17 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    wishlistBtn: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
     },
 });

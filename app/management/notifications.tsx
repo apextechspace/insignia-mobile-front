@@ -1,49 +1,68 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
-
-const MOCK_NOTIFICATIONS = [
-  {
-    id: '1',
-    title: 'Order Delivered',
-    body: 'Your Midnight Oud Candle has been delivered to Room 401.',
-    time: '2 mins ago',
-    type: 'order',
-    read: false,
-  },
-  {
-    id: '2',
-    title: 'Massage Confirmed',
-    body: 'Your 5:00 PM Swedish Massage is confirmed. Our specialist will arrive shortly.',
-    time: '1 hour ago',
-    type: 'service',
-    read: true,
-  },
-  {
-    id: '3',
-    title: 'Welcome to Insignia',
-    body: 'We are delighted to have you. Explore our premium boutique and concierge services.',
-    time: '5 hours ago',
-    type: 'system',
-    read: true,
-  },
-];
 
 export default function NotificationsScreen() {
   const { colors, fonts } = useTheme();
   const router = useRouter();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'order': return 'cart-outline';
-      case 'service': return 'leaf-outline';
-      default: return 'notifications-outline';
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get('/notifications');
+      setNotifications(response.data.data);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(true);
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications();
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await api.post(`/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date() } : n));
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await api.post('/notifications/read-all');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error clearing all:', error);
+    }
+  };
+
+  const getTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return date.toLocaleDateString();
   };
 
   return (
@@ -53,38 +72,63 @@ export default function NotificationsScreen() {
           <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.heading }]}>Concierge Alerts</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleClearAll}>
           <Text style={[styles.markRead, { color: colors.tint, fontFamily: fonts.body }]}>Clear All</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {MOCK_NOTIFICATIONS.length === 0 ? (
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
+      >
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.tint} style={{ marginTop: 100 }} />
+        ) : notifications.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={64} color={colors.border} />
             <Text style={[styles.emptyText, { color: colors.text, fontFamily: fonts.body }]}>No alerts at the moment.</Text>
           </View>
         ) : (
-          MOCK_NOTIFICATIONS.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={[styles.notificationCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-            >
-              <View style={[styles.iconBox, { backgroundColor: item.read ? colors.border + '30' : colors.tint + '15' }]}>
-                <Ionicons name={getIcon(item.type)} size={22} color={item.read ? colors.text : colors.tint} />
-              </View>
-              <View style={styles.info}>
-                <View style={styles.row}>
-                  <Text style={[styles.title, { color: colors.text, fontFamily: fonts.heading, opacity: item.read ? 0.7 : 1 }]}>{item.title}</Text>
-                  {!item.read && <View style={[styles.unreadBadge, { backgroundColor: colors.tint }]} />}
+          notifications.map((item) => {
+            const data = item.data;
+            return (
+              <TouchableOpacity 
+                key={item.id} 
+                onPress={() => handleMarkAsRead(item.id)}
+                style={[
+                  styles.notificationCard, 
+                  { 
+                    backgroundColor: colors.card, 
+                    borderColor: item.read_at ? colors.border : colors.tint + '40',
+                    opacity: item.read_at ? 0.7 : 1
+                  }
+                ]}
+              >
+                <View style={[styles.iconBox, { backgroundColor: item.read_at ? colors.border + '30' : colors.tint + '15' }]}>
+                  <Ionicons 
+                    name={data.icon || 'notifications-outline'} 
+                    size={22} 
+                    color={item.read_at ? colors.text : colors.tint} 
+                  />
                 </View>
-                <Text style={[styles.body, { color: colors.text, fontFamily: fonts.body, opacity: 0.6 }]} numberOfLines={2}>
-                  {item.body}
-                </Text>
-                <Text style={[styles.time, { color: colors.text, fontFamily: fonts.body, opacity: 0.4 }]}>{item.time}</Text>
-              </View>
-            </TouchableOpacity>
-          ))
+                <View style={styles.info}>
+                  <View style={styles.row}>
+                    <Text style={[styles.title, { color: colors.text, fontFamily: fonts.heading }]}>{data.title}</Text>
+                    {!item.read_at && <View style={[styles.unreadBadge, { backgroundColor: colors.tint }]} />}
+                  </View>
+                  <Text style={[styles.body, { color: colors.text, fontFamily: fonts.body, opacity: 0.8 }]} numberOfLines={2}>
+                    {data.message}
+                  </Text>
+                  <Text style={[styles.time, { color: colors.text, fontFamily: fonts.body, opacity: 0.4 }]}>
+                    {getTimeAgo(item.created_at)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </View>

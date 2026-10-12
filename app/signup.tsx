@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../services/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sessionService } from '../services/session';
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -37,7 +37,7 @@ export default function SignupScreen() {
             console.log('Signup success:', response);
 
             if (response.access_token) {
-                await AsyncStorage.setItem('auth_token', response.access_token);
+                await sessionService.setToken(response.access_token);
             }
 
             // For now, proceed as if successful
