@@ -1,43 +1,79 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 
 let unauthorizedHandler: null | (() => void | Promise<void>) = null;
 let isHandlingUnauthorized = false;
 
-const getSecureToken = async () => {
-    return SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+const isWeb = Platform.OS === 'web';
+
+const getSecureToken = async (): Promise<string | null> => {
+    if (isWeb) {
+        return AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    }
+    try {
+        return await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    } catch {
+        return AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    }
 };
 
-const migrateLegacyToken = async () => {
-    const secureToken = await getSecureToken();
-    if (secureToken) {
-        return secureToken;
+const migrateLegacyToken = async (): Promise<string | null> => {
+    if (isWeb) {
+        return AsyncStorage.getItem(AUTH_TOKEN_KEY);
     }
+    try {
+        const secureToken = await getSecureToken();
+        if (secureToken) {
+            return secureToken;
+        }
 
-    const legacyToken = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-    if (!legacyToken) {
-        return null;
+        const legacyToken = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        if (!legacyToken) {
+            return null;
+        }
+
+        await SecureStore.setItemAsync(AUTH_TOKEN_KEY, legacyToken);
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+        return legacyToken;
+    } catch {
+        return AsyncStorage.getItem(AUTH_TOKEN_KEY);
     }
-
-    await SecureStore.setItemAsync(AUTH_TOKEN_KEY, legacyToken);
-    await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-    return legacyToken;
 };
 
 export const sessionService = {
-    getToken: async () => {
-        return migrateLegacyToken();
+    getToken: async (): Promise<string | null> => {
+        try {
+            return await migrateLegacyToken();
+        } catch {
+            return null;
+        }
     },
 
-    setToken: async (token: string) => {
-        await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
-        await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+    setToken: async (token: string): Promise<void> => {
+        if (isWeb) {
+            await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+            return;
+        }
+        try {
+            await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+        } catch {
+            await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+        }
     },
 
-    clearToken: async () => {
-        await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    clearToken: async (): Promise<void> => {
+        if (isWeb) {
+            await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+            return;
+        }
+        try {
+            await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+        } catch {
+            // ignore
+        }
         await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
     },
 

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image, Dimensions, Platform } from 'react-native';
 const { width } = Dimensions.get('window');
 import { useRouter } from 'expo-router';
 import { useTheme } from '../hooks/useTheme';
@@ -9,7 +9,7 @@ import { sessionService } from '../services/session';
 export default function SplashScreen() {
     const router = useRouter();
     const { colors, fonts } = useTheme();
-    const fadeAnim = new Animated.Value(0);
+    const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         let isMounted = true;
@@ -17,28 +17,35 @@ export default function SplashScreen() {
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 1500,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
         }).start();
 
         const bootstrapSession = async () => {
-            await new Promise(resolve => setTimeout(resolve, 1800));
-
-            const token = await sessionService.getToken();
-            if (!token) {
-                if (isMounted) {
-                    router.replace('/login');
-                }
-                return;
-            }
-
             try {
-                await authService.getUser();
-                if (isMounted) {
-                    router.replace('/branch-selection');
+                await new Promise(resolve => setTimeout(resolve, 1800));
+
+                const token = await sessionService.getToken();
+                if (!token) {
+                    if (isMounted) {
+                        router.replace('/login');
+                    }
+                    return;
+                }
+
+                try {
+                    await authService.getUser();
+                    if (isMounted) {
+                        router.replace('/branch-selection');
+                    }
+                } catch (error) {
+                    console.error('Stored session is no longer valid:', error);
+                    await sessionService.clearToken();
+                    if (isMounted) {
+                        router.replace('/login');
+                    }
                 }
             } catch (error) {
-                console.error('Stored session is no longer valid:', error);
-                await sessionService.clearToken();
+                console.error('Session bootstrap failed, fallback to login:', error);
                 if (isMounted) {
                     router.replace('/login');
                 }

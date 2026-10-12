@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -86,6 +87,8 @@ function RootLayoutNav() {
   }, [router]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     // Register for push notifications
     registerForPushNotificationsAsync().then(token => {
       if (token) {
@@ -106,8 +109,8 @@ function RootLayoutNav() {
     });
 
     return () => {
-      foregroundSubscription.remove();
-      responseSubscription.remove();
+      foregroundSubscription?.remove();
+      responseSubscription?.remove();
     };
   }, []);
 
