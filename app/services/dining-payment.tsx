@@ -317,16 +317,16 @@ export default function DiningPaymentScreen() {
                     onSelect={setSelectedMethod} 
                 />
 
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
                         <View style={styles.opayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
                             <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Instant Settlement
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
                         <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
-                            Pay effortlessly with one tap from the OPay app, dedicated bank transfer, or debit card. Kitchen starts cooking instantly upon confirmation!
+                            Complete payment securely through Flutterwave. Kitchen preparation begins after verified payment.
                         </Text>
                     </View>
                 ) : (
@@ -379,7 +379,7 @@ export default function DiningPaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
