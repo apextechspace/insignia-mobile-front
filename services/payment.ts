@@ -4,9 +4,10 @@ import * as Linking from 'expo-linking';
 
 export type OrderType = 'booking' | 'order' | 'food_order' | 'service_booking';
 
-export interface OPayInitResponse {
+export interface PaymentInitResponse {
     status: string;
-    cashier_url: string;
+    payment_url: string;
+    cashier_url: string; // compatibility
     reference: string;
     order_id: number;
     order_type: OrderType;
@@ -14,19 +15,23 @@ export interface OPayInitResponse {
     message?: string;
 }
 
-export interface OPayVerifyResponse {
+export interface PaymentVerifyResponse {
     status: string;
     is_paid: boolean;
     record: any;
     message?: string;
 }
 
+// Backward-compatibility aliases
+export type OPayInitResponse = PaymentInitResponse;
+export type OPayVerifyResponse = PaymentVerifyResponse;
+
 export const paymentService = {
     /**
-     * Request OPay cashier payment URL from backend
+     * Request Flutterwave checkout payment URL from backend
      */
-    async initializeOPay(orderType: OrderType, orderId: number): Promise<OPayInitResponse> {
-        const response = await api.post('/payments/opay/initialize', {
+    async initializeFlutterwave(orderType: OrderType, orderId: number): Promise<PaymentInitResponse> {
+        const response = await api.post('/payments/flutterwave/initialize', {
             order_type: orderType,
             order_id: orderId,
         });
@@ -34,18 +39,46 @@ export const paymentService = {
     },
 
     /**
-     * Poll/verify payment status by reference
+     * Poll / verify payment status by Flutterwave transaction reference
      */
-    async verifyOPay(reference: string): Promise<OPayVerifyResponse> {
-        const response = await api.get(`/payments/opay/verify/${reference}`);
+    async verifyFlutterwave(reference: string): Promise<PaymentVerifyResponse> {
+        const response = await api.get(`/payments/flutterwave/verify/${reference}`);
         return response.data;
     },
 
     /**
-     * Open OPay hosted cashier within an in-app browser session
+     * Open Flutterwave secure checkout within an in-app browser session
      */
-    async openOPayCashier(cashierUrl: string): Promise<WebBrowser.WebBrowserAuthSessionResult> {
+    async openFlutterwaveCheckout(paymentUrl: string): Promise<WebBrowser.WebBrowserAuthSessionResult> {
         const redirectUrl = Linking.createURL('payment-complete');
-        return await WebBrowser.openAuthSessionAsync(cashierUrl, redirectUrl);
+        return await WebBrowser.openAuthSessionAsync(paymentUrl, redirectUrl);
+    },
+
+    /**
+     * Generic payment gateway helpers
+     */
+    async initializePayment(orderType: OrderType, orderId: number): Promise<PaymentInitResponse> {
+        return this.initializeFlutterwave(orderType, orderId);
+    },
+
+    async verifyPayment(reference: string): Promise<PaymentVerifyResponse> {
+        return this.verifyFlutterwave(reference);
+    },
+
+    async openPaymentCheckout(paymentUrl: string): Promise<WebBrowser.WebBrowserAuthSessionResult> {
+        return this.openFlutterwaveCheckout(paymentUrl);
+    },
+
+    // Legacy method wrappers to prevent breaking older views
+    async initializeOPay(orderType: OrderType, orderId: number): Promise<PaymentInitResponse> {
+        return this.initializeFlutterwave(orderType, orderId);
+    },
+
+    async verifyOPay(reference: string): Promise<PaymentVerifyResponse> {
+        return this.verifyFlutterwave(reference);
+    },
+
+    async openOPayCashier(cashierUrl: string): Promise<WebBrowser.WebBrowserAuthSessionResult> {
+        return this.openFlutterwaveCheckout(cashierUrl);
     },
 };

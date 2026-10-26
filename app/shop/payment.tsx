@@ -20,7 +20,7 @@ export default function ShopPaymentScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('opay');
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('flutterwave');
     const [receiptImage, setReceiptImage] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -46,8 +46,8 @@ export default function ShopPaymentScreen() {
         }
     };
 
-    // ⚡ OPay Instant Payment
-    const handlePayWithOPay = async () => {
+    // ⚡ Flutterwave Instant Payment
+    const handlePayWithFlutterwave = async () => {
         setIsLoading(true);
         try {
             // 1. Create order in pending status
@@ -60,33 +60,38 @@ export default function ShopPaymentScreen() {
 
             const createdOrder = await productService.createOrder(formData);
 
-            // 2. Initialize OPay
-            const opayData = await paymentService.initializeOPay('order', createdOrder.id);
+            // 2. Initialize Flutterwave
+            const flwData = await paymentService.initializeFlutterwave('order', createdOrder.id);
 
-            // 3. Open Cashier
-            await paymentService.openOPayCashier(opayData.cashier_url);
+            const checkoutUrl = flwData.payment_url || flwData.cashier_url;
+            if (!checkoutUrl) {
+                throw new Error(flwData.message || 'Unable to open Flutterwave Checkout.');
+            }
+
+            // 3. Open Checkout
+            await paymentService.openFlutterwaveCheckout(checkoutUrl);
 
             // 4. Verify payment
-            const verifyResult = await paymentService.verifyOPay(opayData.reference);
+            const verifyResult = await paymentService.verifyFlutterwave(flwData.reference);
 
             setOrderDetails({
                 id: createdOrder.id,
-                reference: opayData.reference,
+                reference: flwData.reference,
                 amount: total,
-                method: 'opay',
+                method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             });
 
             await sendLocalNotification(
                 "Order Placed", 
-                `Your boutique order for ${name} was paid via OPay and is being prepared.`
+                `Your boutique order for ${name} was paid via Flutterwave and is being prepared.`
             );
 
             setIsSuccess(true);
         } catch (error: any) {
-            console.error('OPay Order Error:', error);
-            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to process OPay payment.");
+            console.error('Flutterwave Order Error:', error);
+            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to process Flutterwave payment.");
         } finally {
             setIsLoading(false);
         }
@@ -155,7 +160,7 @@ export default function ShopPaymentScreen() {
                 </Text>
                 <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
                     {orderDetails?.isPaid
-                        ? `Your order for ${name} has been verified via OPay and sent to dispatch.`
+                        ? `Your order for ${name} has been verified via Flutterwave and sent to dispatch.`
                         : `Your order for ${name} has been received. Our team will verify your receipt shortly.`}
                 </Text>
 
@@ -194,7 +199,7 @@ export default function ShopPaymentScreen() {
                     <View style={styles.receiptRow}>
                         <Text style={[styles.receiptKey, { color: colors.text }]}>Payment Method</Text>
                         <Text style={[styles.receiptValue, { color: colors.tint, fontFamily: fonts.button }]}>
-                            {orderDetails?.method === 'opay' ? '⚡ OPay Instant Checkout' : '🏦 Bank Transfer'}
+                            {orderDetails?.method === 'flutterwave' ? '⚡ Flutterwave Checkout' : '🏦 Bank Transfer'}
                         </Text>
                     </View>
 
@@ -335,11 +340,11 @@ export default function ShopPaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
-                        onPress={handlePayWithOPay}
+                        onPress={handlePayWithFlutterwave}
                     >
                         <LinearGradient
                             colors={[colors.tint, '#5D1031']}
@@ -353,7 +358,7 @@ export default function ShopPaymentScreen() {
                                 <View style={styles.btnRow}>
                                     <Ionicons name="flash" size={18} color="#FFF" style={{ marginRight: 8 }} />
                                     <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
-                                        Pay ₦{Number(total).toLocaleString()} with OPay
+                                        Pay ₦{Number(total).toLocaleString()} with Flutterwave
                                     </Text>
                                 </View>
                             )}

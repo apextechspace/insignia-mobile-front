@@ -27,7 +27,7 @@ export default function DiningPaymentScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('opay');
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('flutterwave');
     const [receiptAsset, setReceiptAsset] = useState<any>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -68,8 +68,8 @@ export default function DiningPaymentScreen() {
         }
     };
 
-    // ⚡ OPay Dining Checkout
-    const handlePayWithOPay = async () => {
+    // ⚡ Flutterwave Dining Checkout
+    const handlePayWithFlutterwave = async () => {
         if (cartItems.length === 0) {
             Alert.alert('Error', 'Your cart is empty.');
             return;
@@ -82,7 +82,7 @@ export default function DiningPaymentScreen() {
             formData.append('type', String(type || 'room_service'));
             formData.append('payment_reference', reference);
             formData.append('metadata[service_name]', String(serviceName || 'Dining'));
-            formData.append('metadata[notes]', 'Paid via OPay online checkout');
+            formData.append('metadata[notes]', 'Paid via Flutterwave online checkout');
 
             cartItems.forEach((item, index) => {
                 formData.append(`items[${index}][menu_item_id]`, String(item.id));
@@ -92,33 +92,38 @@ export default function DiningPaymentScreen() {
             const orderResponse = await foodService.placeOrderWithReceipt(formData);
             const createdOrder = orderResponse.data;
 
-            // 2. Initialize OPay
-            const opayData = await paymentService.initializeOPay('food_order', createdOrder.id);
+            // 2. Initialize Flutterwave
+            const flwData = await paymentService.initializeFlutterwave('food_order', createdOrder.id);
 
-            // 3. Launch In-App Cashier
-            await paymentService.openOPayCashier(opayData.cashier_url);
+            const checkoutUrl = flwData.payment_url || flwData.cashier_url;
+            if (!checkoutUrl) {
+                throw new Error(flwData.message || 'Unable to open Flutterwave Checkout.');
+            }
+
+            // 3. Launch In-App Checkout
+            await paymentService.openFlutterwaveCheckout(checkoutUrl);
 
             // 4. Verify payment
-            const verifyResult = await paymentService.verifyOPay(opayData.reference);
+            const verifyResult = await paymentService.verifyFlutterwave(flwData.reference);
 
             setDiningDetails({
                 id: createdOrder.id,
-                reference: opayData.reference,
+                reference: flwData.reference,
                 amount: numericTotal,
-                method: 'opay',
+                method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             });
 
             await sendLocalNotification(
                 "Dining Order Confirmed",
-                `Your order for ${serviceName || 'Dining'} has been processed via OPay.`
+                `Your order for ${serviceName || 'Dining'} has been processed via Flutterwave.`
             );
 
             setIsSuccess(true);
         } catch (error: any) {
-            console.error('OPay Dining Error:', error);
-            Alert.alert('Payment Error', error.response?.data?.message || error.message || 'Failed to complete OPay payment.');
+            console.error('Flutterwave Dining Error:', error);
+            Alert.alert('Payment Error', error.response?.data?.message || error.message || 'Failed to complete Flutterwave payment.');
         } finally {
             setIsLoading(false);
         }
@@ -192,7 +197,7 @@ export default function DiningPaymentScreen() {
                 </Text>
                 <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
                     {diningDetails?.isPaid
-                        ? `Your order for ${serviceName || 'Dining'} has been confirmed via OPay and sent directly to the kitchen.`
+                        ? `Your order for ${serviceName || 'Dining'} has been confirmed via Flutterwave and sent directly to the kitchen.`
                         : `Your order for ${serviceName || 'Dining'} has been received. Our team will verify your receipt shortly.`}
                 </Text>
 
@@ -233,7 +238,7 @@ export default function DiningPaymentScreen() {
                     <View style={styles.receiptRow}>
                         <Text style={[styles.receiptKey, { color: colors.text }]}>Payment Method</Text>
                         <Text style={[styles.receiptValue, { color: colors.tint, fontFamily: fonts.button }]}>
-                            {diningDetails?.method === 'opay' ? '⚡ OPay Instant Checkout' : '🏦 Bank Transfer'}
+                            {diningDetails?.method === 'flutterwave' ? '⚡ Flutterwave Checkout' : '🏦 Bank Transfer'}
                         </Text>
                     </View>
 
@@ -374,11 +379,11 @@ export default function DiningPaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
-                        onPress={handlePayWithOPay}
+                        onPress={handlePayWithFlutterwave}
                     >
                         <LinearGradient
                             colors={[colors.tint, '#5D1031']}
@@ -392,7 +397,7 @@ export default function DiningPaymentScreen() {
                                 <View style={styles.btnRow}>
                                     <Ionicons name="flash" size={18} color="#FFF" style={{ marginRight: 8 }} />
                                     <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
-                                        Pay ₦{numericTotal.toLocaleString()} with OPay
+                                        Pay ₦{numericTotal.toLocaleString()} with Flutterwave
                                     </Text>
                                 </View>
                             )}

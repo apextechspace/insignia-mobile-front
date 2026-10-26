@@ -36,7 +36,7 @@ export default function ServicePaymentScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('opay');
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('flutterwave');
     const [receiptAsset, setReceiptAsset] = useState<any>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -94,41 +94,46 @@ export default function ServicePaymentScreen() {
         return formData;
     };
 
-    // ⚡ OPay Instant Concierge Payment
-    const handlePayWithOPay = async () => {
+    // ⚡ Flutterwave Instant Concierge Payment
+    const handlePayWithFlutterwave = async () => {
         setIsLoading(true);
         try {
             // 1. Create booking in pending status
             const formData = buildFormData();
             const createdBooking = await serviceService.bookService(formData);
 
-            // 2. Initialize OPay
-            const opayData = await paymentService.initializeOPay('service_booking', createdBooking.id);
+            // 2. Initialize Flutterwave
+            const flwData = await paymentService.initializeFlutterwave('service_booking', createdBooking.id);
 
-            // 3. Open Cashier in in-app browser
-            await paymentService.openOPayCashier(opayData.cashier_url);
+            const checkoutUrl = flwData.payment_url || flwData.cashier_url;
+            if (!checkoutUrl) {
+                throw new Error(flwData.message || 'Unable to open Flutterwave Checkout.');
+            }
+
+            // 3. Open Checkout in in-app browser
+            await paymentService.openFlutterwaveCheckout(checkoutUrl);
 
             // 4. Verify payment
-            const verifyResult = await paymentService.verifyOPay(opayData.reference);
+            const verifyResult = await paymentService.verifyFlutterwave(flwData.reference);
 
             setServiceDetails({
                 id: createdBooking.id,
-                reference: opayData.reference,
+                reference: flwData.reference,
                 amount: unitPrice,
-                method: 'opay',
+                method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             });
 
             await sendLocalNotification(
                 "Service Appointment Confirmed",
-                `Your concierge booking for ${name} has been processed via OPay.`
+                `Your concierge booking for ${name} has been processed via Flutterwave.`
             );
 
             setIsSuccess(true);
         } catch (error: any) {
-            console.error('OPay Service Error:', error);
-            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to process OPay payment.");
+            console.error('Flutterwave Service Error:', error);
+            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to process Flutterwave payment.");
         } finally {
             setIsLoading(false);
         }
@@ -192,7 +197,7 @@ export default function ServicePaymentScreen() {
                 </Text>
                 <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
                     {serviceDetails?.isPaid
-                        ? `Your luxury appointment for ${name} has been verified via OPay and added to your schedule.`
+                        ? `Your luxury appointment for ${name} has been verified via Flutterwave and added to your schedule.`
                         : `Your request for ${name} has been submitted. Our concierge team will review the transfer.`}
                 </Text>
 
@@ -380,11 +385,11 @@ export default function ServicePaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
-                        onPress={handlePayWithOPay}
+                        onPress={handlePayWithFlutterwave}
                     >
                         <LinearGradient
                             colors={[colors.tint, '#5D1031']}
@@ -398,7 +403,7 @@ export default function ServicePaymentScreen() {
                                 <View style={styles.btnRow}>
                                     <Ionicons name="flash" size={18} color="#FFF" style={{ marginRight: 8 }} />
                                     <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
-                                        Pay ₦{unitPrice.toLocaleString()} with OPay
+                                        Pay ₦{unitPrice.toLocaleString()} with Flutterwave
                                     </Text>
                                 </View>
                             )}

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 
-export type PaymentMethod = 'opay' | 'bank_transfer';
+export type PaymentMethod = 'flutterwave' | 'opay' | 'bank_transfer';
 
 interface Props {
     selectedMethod: PaymentMethod;
@@ -13,33 +13,35 @@ interface Props {
 export default function PaymentMethodSelector({ selectedMethod, onSelect }: Props) {
     const { colors, fonts } = useTheme();
 
+    const isFlutterwave = selectedMethod === 'flutterwave' || selectedMethod === 'opay';
+
     return (
         <View style={styles.container}>
             <Text style={[styles.title, { color: colors.text, fontFamily: fonts.heading }]}>
                 Select Payment Method
             </Text>
 
-            {/* 1. OPay Option */}
+            {/* 1. Flutterwave Checkout Option */}
             <TouchableOpacity
                 style={[
                     styles.card,
                     {
                         backgroundColor: colors.card,
-                        borderColor: selectedMethod === 'opay' ? colors.tint : colors.border,
-                        borderWidth: selectedMethod === 'opay' ? 2 : 1,
+                        borderColor: isFlutterwave ? colors.tint : colors.border,
+                        borderWidth: isFlutterwave ? 2 : 1,
                     },
                 ]}
-                onPress={() => onSelect('opay')}
+                onPress={() => onSelect('flutterwave')}
                 activeOpacity={0.8}
             >
                 <View style={styles.cardHeader}>
                     <View style={[styles.iconBox, { backgroundColor: colors.tint + '15' }]}>
-                        <Ionicons name="flash" size={20} color={colors.tint} />
+                        <MaterialCommunityIcons name="shield-check" size={22} color={colors.tint} />
                     </View>
                     <View style={styles.cardInfo}>
                         <View style={styles.nameRow}>
                             <Text style={[styles.methodName, { color: colors.text, fontFamily: fonts.button }]}>
-                                OPay Instant Pay
+                                Flutterwave Checkout
                             </Text>
                             <View style={[styles.badge, { backgroundColor: '#27AE60' + '20' }]}>
                                 <Text style={[styles.badgeText, { color: '#27AE60', fontFamily: fonts.button }]}>
@@ -48,19 +50,19 @@ export default function PaymentMethodSelector({ selectedMethod, onSelect }: Prop
                             </View>
                         </View>
                         <Text style={[styles.methodDesc, { color: colors.text, fontFamily: fonts.body }]}>
-                            OPay App, Fast Bank Transfer, or Debit Card
+                            Cards (Mastercard, Visa, Verve), Bank Transfer & USSD
                         </Text>
                     </View>
                     <View
                         style={[
                             styles.radio,
                             {
-                                borderColor: selectedMethod === 'opay' ? colors.tint : colors.border,
-                                backgroundColor: selectedMethod === 'opay' ? colors.tint : 'transparent',
+                                borderColor: isFlutterwave ? colors.tint : colors.border,
+                                backgroundColor: isFlutterwave ? colors.tint : 'transparent',
                             },
                         ]}
                     >
-                        {selectedMethod === 'opay' && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                        {isFlutterwave && <Ionicons name="checkmark" size={14} color="#FFF" />}
                     </View>
                 </View>
             </TouchableOpacity>

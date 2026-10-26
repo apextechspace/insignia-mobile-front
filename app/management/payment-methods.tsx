@@ -37,18 +37,18 @@ export default function PaymentMethodsScreen() {
                     >
                         <View style={styles.bannerHeader}>
                             <View style={styles.bannerIconBox}>
-                                <Ionicons name="flash" size={22} color={colors.tint} />
+                                <MaterialCommunityIcons name="shield-check" size={22} color={colors.tint} />
                             </View>
                             <View style={{ flex: 1, marginLeft: 12 }}>
                                 <Text style={[styles.bannerLabel, { fontFamily: fonts.button }]}>PRIMARY GATEWAY</Text>
-                                <Text style={[styles.bannerTitle, { fontFamily: fonts.heading }]}>OPay Express Cashier</Text>
+                                <Text style={[styles.bannerTitle, { fontFamily: fonts.heading }]}>Flutterwave Checkout</Text>
                             </View>
                             <View style={styles.activePill}>
                                 <Text style={[styles.activePillText, { fontFamily: fonts.button }]}>ACTIVE</Text>
                             </View>
                         </View>
                         <Text style={[styles.bannerDesc, { fontFamily: fonts.body }]}>
-                            Instant automated settlements enabled for your stays, boutique orders, room service, and concierge services.
+                            Enterprise-grade secured payments enabled for suite bookings, boutique shopping, dining, and concierge requests.
                         </Text>
                     </LinearGradient>
                 </View>
@@ -56,20 +56,20 @@ export default function PaymentMethodsScreen() {
                 {/* Available Channels */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                        Supported Channels
+                        Supported Payment Channels
                     </Text>
 
-                    {/* 1. OPay Wallet */}
+                    {/* 1. Debit & Credit Cards */}
                     <View style={[styles.channelCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <View style={[styles.channelIconBox, { backgroundColor: colors.tint + '15' }]}>
-                            <Ionicons name="wallet-outline" size={22} color={colors.tint} />
+                            <Ionicons name="card-outline" size={22} color={colors.tint} />
                         </View>
                         <View style={styles.channelInfo}>
                             <Text style={[styles.channelName, { color: colors.text, fontFamily: fonts.button }]}>
-                                OPay App Wallet
+                                Debit & Credit Cards
                             </Text>
                             <Text style={[styles.channelSub, { color: colors.text, fontFamily: fonts.body }]}>
-                                One-tap instant payment from your mobile wallet
+                                Mastercard, Visa & Verve with 3D Secure verification
                             </Text>
                         </View>
                         <Ionicons name="checkmark-circle" size={20} color="#27AE60" />
@@ -82,26 +82,26 @@ export default function PaymentMethodsScreen() {
                         </View>
                         <View style={styles.channelInfo}>
                             <Text style={[styles.channelName, { color: colors.text, fontFamily: fonts.button }]}>
-                                Dynamic Bank Transfer
+                                Direct Bank Transfer
                             </Text>
                             <Text style={[styles.channelSub, { color: colors.text, fontFamily: fonts.body }]}>
-                                Auto-generated one-time OPay virtual account
+                                Instant automated transfer verification via Flutterwave
                             </Text>
                         </View>
                         <Ionicons name="checkmark-circle" size={20} color="#27AE60" />
                     </View>
 
-                    {/* 3. Debit / Credit Cards */}
+                    {/* 3. USSD & Mobile Money */}
                     <View style={[styles.channelCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <View style={[styles.channelIconBox, { backgroundColor: colors.tint + '15' }]}>
-                            <Ionicons name="card-outline" size={22} color={colors.tint} />
+                            <Ionicons name="phone-portrait-outline" size={22} color={colors.tint} />
                         </View>
                         <View style={styles.channelInfo}>
                             <Text style={[styles.channelName, { color: colors.text, fontFamily: fonts.button }]}>
-                                Debit & Credit Cards
+                                USSD & Mobile Banking
                             </Text>
                             <Text style={[styles.channelSub, { color: colors.text, fontFamily: fonts.body }]}>
-                                Mastercard, Visa & Verve with 3D Secure
+                                Fast dial codes supported across all major banks
                             </Text>
                         </View>
                         <Ionicons name="checkmark-circle" size={20} color="#27AE60" />

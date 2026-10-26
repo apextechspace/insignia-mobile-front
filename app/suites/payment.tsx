@@ -18,7 +18,7 @@ export default function PaymentScreen() {
     const { colors, fonts } = useTheme();
     const router = useRouter();
 
-    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('opay');
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('flutterwave');
     const [receiptAsset, setReceiptAsset] = useState<any>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isBooking, setIsBooking] = useState(false);
@@ -44,8 +44,8 @@ export default function PaymentScreen() {
         }
     };
 
-    // ⚡ Automated OPay Checkout
-    const handlePayWithOPay = async () => {
+    // ⚡ Automated Flutterwave Checkout
+    const handlePayWithFlutterwave = async () => {
         if (!roomId || !checkIn || !checkOut) {
             Alert.alert("Error", "Missing booking information.");
             return;
@@ -64,37 +64,39 @@ export default function PaymentScreen() {
             const bookingResponse = await bookingService.createBooking(formData);
             const createdBooking = bookingResponse;
 
-            // 2. Initialize OPay Cashier Link from backend
-            const opayData = await paymentService.initializeOPay('booking', createdBooking.id);
+            // 2. Initialize Flutterwave Checkout Link from backend
+            const flwData = await paymentService.initializeFlutterwave('booking', createdBooking.id);
 
-            if (!opayData.cashier_url) {
-                throw new Error(opayData.message || 'Unable to open OPay Cashier.');
+            if (!flwData.payment_url && !flwData.cashier_url) {
+                throw new Error(flwData.message || 'Unable to open Flutterwave Checkout.');
             }
 
+            const checkoutUrl = flwData.payment_url || flwData.cashier_url;
+
             // 3. Open in-app browser session
-            await paymentService.openOPayCashier(opayData.cashier_url);
+            await paymentService.openFlutterwaveCheckout(checkoutUrl);
 
             // 4. Verify payment status upon returning
-            const verifyResult = await paymentService.verifyOPay(opayData.reference);
+            const verifyResult = await paymentService.verifyFlutterwave(flwData.reference);
 
             setBookingDetails({
                 id: createdBooking.id,
-                reference: opayData.reference,
+                reference: flwData.reference,
                 amount: total,
-                method: 'opay',
+                method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             });
 
             await sendLocalNotification(
                 "Suite Reservation Placed",
-                `Your stay at ${name} has been processed via OPay.`
+                `Your stay at ${name} has been processed via Flutterwave.`
             );
 
             setIsSuccess(true);
         } catch (error: any) {
-            console.error('OPay Checkout Error:', error);
-            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to complete OPay payment.");
+            console.error('Flutterwave Checkout Error:', error);
+            Alert.alert("Payment Error", error.response?.data?.message || error.message || "Failed to complete Flutterwave payment.");
         } finally {
             setIsBooking(false);
         }
@@ -163,7 +165,7 @@ export default function PaymentScreen() {
                 </Text>
                 <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
                     {bookingDetails?.isPaid 
-                        ? `Your luxury stay at ${name} has been verified and confirmed via OPay.` 
+                        ? `Your luxury stay at ${name} has been verified and confirmed via Flutterwave.` 
                         : `Your reservation at ${name} has been placed. Our concierge team is verifying the receipt.`}
                 </Text>
 
@@ -212,7 +214,7 @@ export default function PaymentScreen() {
                     <View style={styles.receiptRow}>
                         <Text style={[styles.receiptKey, { color: colors.text }]}>Payment Method</Text>
                         <Text style={[styles.receiptValue, { color: colors.tint, fontFamily: fonts.button }]}>
-                            {bookingDetails?.method === 'opay' ? '⚡ OPay Instant Checkout' : '🏦 Bank Transfer'}
+                            {bookingDetails?.method === 'flutterwave' ? '⚡ Flutterwave Checkout' : '🏦 Bank Transfer'}
                         </Text>
                     </View>
 
@@ -375,11 +377,11 @@ export default function PaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isBooking}
-                        onPress={handlePayWithOPay}
+                        onPress={handlePayWithFlutterwave}
                     >
                         <LinearGradient
                             colors={[colors.tint, '#5D1031']}
@@ -391,9 +393,9 @@ export default function PaymentScreen() {
                                 <ActivityIndicator color="#FFF" />
                             ) : (
                                 <View style={styles.btnRow}>
-                                    <Ionicons name="flash" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                                    <MaterialCommunityIcons name="shield-check" size={18} color="#FFF" style={{ marginRight: 8 }} />
                                     <Text style={[styles.finishBtnText, { fontFamily: fonts.button }]}>
-                                        Pay ₦{Number(total).toLocaleString()} with OPay
+                                        Pay ₦{Number(total).toLocaleString()} with Flutterwave
                                     </Text>
                                 </View>
                             )}
