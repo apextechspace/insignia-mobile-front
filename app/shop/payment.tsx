@@ -85,8 +85,10 @@ export default function ShopPaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Order Placed", 
-                `Your boutique order for ${name} was paid via Flutterwave and is being prepared.`
+                verifyResult.is_paid ? 'Boutique Payment Confirmed' : 'Boutique Payment Pending',
+                verifyResult.is_paid
+                    ? `Your boutique payment for ${name} has been verified.`
+                    : 'Payment is awaiting verification. Your order is not yet cleared for dispatch.'
             );
 
             setIsSuccess(true);
