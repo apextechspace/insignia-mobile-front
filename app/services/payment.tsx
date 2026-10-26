@@ -127,8 +127,10 @@ export default function ServicePaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Service Appointment Confirmed",
-                `Your concierge booking for ${name} has been processed via Flutterwave.`
+                verifyResult.is_paid ? 'Concierge Payment Confirmed' : 'Concierge Payment Pending',
+                verifyResult.is_paid
+                    ? `Your concierge booking for ${name} has been verified.`
+                    : 'Payment is awaiting verification. Your appointment is not yet confirmed.'
             );
 
             setIsSuccess(true);
