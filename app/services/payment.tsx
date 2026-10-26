@@ -240,7 +240,7 @@ export default function ServicePaymentScreen() {
                     <View style={styles.receiptRow}>
                         <Text style={[styles.receiptKey, { color: colors.text }]}>Payment Method</Text>
                         <Text style={[styles.receiptValue, { color: colors.tint, fontFamily: fonts.button }]}>
-                            {serviceDetails?.method === 'opay' ? '⚡ OPay Instant Checkout' : '🏦 Bank Transfer'}
+                            {serviceDetails?.method === 'flutterwave' ? '⚡ Flutterwave Checkout' : '🏦 Bank Transfer'}
                         </Text>
                     </View>
 
@@ -323,16 +323,16 @@ export default function ServicePaymentScreen() {
                     onSelect={setSelectedMethod} 
                 />
 
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
                         <View style={styles.opayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
                             <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Instant Settlement
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
                         <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
-                            Instant confirmation for your concierge booking via OPay app, dedicated bank transfer, or debit card.
+                            Complete payment securely via Flutterwave. Your booking is confirmed only after verification.
                         </Text>
                     </View>
                 ) : (
@@ -385,7 +385,7 @@ export default function ServicePaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
