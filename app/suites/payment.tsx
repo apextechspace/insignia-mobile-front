@@ -296,12 +296,12 @@ export default function PaymentScreen() {
                 />
 
                 {/* Dynamic Content based on selected method */}
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
                         <View style={styles.opayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
                             <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Secure Cashier
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
                         <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
@@ -309,7 +309,7 @@ export default function PaymentScreen() {
                         </Text>
                         <View style={styles.opayBulletRow}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.tint} />
-                            <Text style={[styles.opayBulletText, { color: colors.text }]}>OPay Wallet (One-tap payment)</Text>
+                            <Text style={[styles.opayBulletText, { color: colors.text }]}>Secure online checkout</Text>
                         </View>
                         <View style={styles.opayBulletRow}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.tint} />
@@ -377,7 +377,7 @@ export default function PaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isBooking}
