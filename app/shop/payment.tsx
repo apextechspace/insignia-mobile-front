@@ -278,16 +278,16 @@ export default function ShopPaymentScreen() {
                     onSelect={setSelectedMethod} 
                 />
 
-                {selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
                         <View style={styles.opayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
                             <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Instant Cashier
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
                         <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
-                            Pay effortlessly using your OPay app wallet, instant dedicated bank transfer, or debit card.
+                            Pay securely using the payment methods available at Flutterwave checkout.
                         </Text>
                     </View>
                 ) : (
@@ -340,7 +340,7 @@ export default function ShopPaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' || selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
