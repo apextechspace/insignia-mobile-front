@@ -1,0 +1,19 @@
+name: Mobile frontend TypeScript
+
+on:
+  pull_request:
+  push:
+    branches:
+      - fix/flutterwave-payment-selection-20261026
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
