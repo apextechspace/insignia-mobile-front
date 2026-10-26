@@ -1,3 +1,4 @@
+import { manualBankDetails } from '../../config/manualBank';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -116,19 +117,19 @@ export default function PaymentMethodsScreen() {
                     <View style={[styles.corporateCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <View style={styles.corpRow}>
                             <Text style={[styles.corpKey, { color: colors.text }]}>Bank</Text>
-                            <Text style={[styles.corpValue, { color: colors.text, fontFamily: fonts.button }]}>First Executive Bank</Text>
+                            <Text style={[styles.corpValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.bankName || 'Not configured'}</Text>
                         </View>
                         <View style={styles.corpRow}>
                             <Text style={[styles.corpKey, { color: colors.text }]}>Account Number</Text>
-                            <Text style={[styles.corpValue, { color: colors.tint, fontFamily: fonts.heading }]}>0123 4567 8910</Text>
+                            <Text style={[styles.corpValue, { color: colors.tint, fontFamily: fonts.heading }]}>{manualBankDetails.accountNumber || 'Not configured'}</Text>
                         </View>
                         <View style={styles.corpRow}>
                             <Text style={[styles.corpKey, { color: colors.text }]}>Account Name</Text>
-                            <Text style={[styles.corpValue, { color: colors.text, fontFamily: fonts.button }]}>Insignia Courts Group</Text>
+                            <Text style={[styles.corpValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountName || 'Not configured'}</Text>
                         </View>
                         <View style={styles.corpRow}>
                             <Text style={[styles.corpKey, { color: colors.text }]}>Manual Verification</Text>
-                            <Text style={[styles.corpValue, { color: '#F39C12', fontFamily: fonts.button }]}>Available as Fallback</Text>
+                            <Text style={[styles.corpValue, { color: '#F39C12', fontFamily: fonts.button }]}>{manualBankDetails.isConfigured ? 'Available with manual review' : 'Not configured'}</Text>
                         </View>
                     </View>
                 </View>
