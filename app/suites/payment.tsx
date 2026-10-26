@@ -90,8 +90,10 @@ export default function PaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Suite Reservation Placed",
-                `Your stay at ${name} has been processed via Flutterwave.`
+                verifyResult.is_paid ? 'Suite Reservation Confirmed' : 'Suite Payment Pending',
+                verifyResult.is_paid
+                    ? `Your stay at ${name} has been verified and confirmed.`
+                    : 'Your payment has not yet been verified. Check your booking status before arrival.'
             );
 
             setIsSuccess(true);
