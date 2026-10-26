@@ -22,10 +22,6 @@ export interface PaymentVerifyResponse {
     message?: string;
 }
 
-// Backward-compatibility aliases
-export type OPayInitResponse = PaymentInitResponse;
-export type OPayVerifyResponse = PaymentVerifyResponse;
-
 export const paymentService = {
     /**
      * Request Flutterwave checkout payment URL from backend
