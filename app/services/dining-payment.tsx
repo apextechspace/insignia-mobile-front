@@ -117,8 +117,10 @@ export default function DiningPaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Dining Order Confirmed",
-                `Your order for ${serviceName || 'Dining'} has been processed via Flutterwave.`
+                verifyResult.is_paid ? 'Dining Payment Confirmed' : 'Dining Payment Pending',
+                verifyResult.is_paid
+                    ? `Your dining payment for ${serviceName || 'Dining'} has been verified.`
+                    : 'Payment is awaiting verification. Kitchen preparation has not started.'
             );
 
             setIsSuccess(true);
