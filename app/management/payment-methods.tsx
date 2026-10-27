@@ -1,4 +1,4 @@
-import { manualBankDetails } from '../../config/manualBank';
+import { useManualBankDetails } from '../../config/manualBank';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,7 @@ const { width } = Dimensions.get('window');
 
 export default function PaymentMethodsScreen() {
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
