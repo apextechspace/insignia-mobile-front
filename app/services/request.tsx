@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     toggleBtn: { flex: 1, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
     toggleText: { fontSize: 12, fontWeight: '600' },
     dayRow: { flexDirection: 'row', marginBottom: 15 },
-    dayChip: { paddingHorizontal: 20, height: 40, borderRadius: 20, borderLines: 1, justifyContent: 'center', alignItems: 'center', marginRight: 10, borderWidth: 1 },
+    dayChip: { paddingHorizontal: 20, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10, borderWidth: 1 },
     periodScroll: { marginBottom: 15 },
     periodChip: { paddingHorizontal: 15, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
     timeGrid: { flexDirection: 'row', flexWrap: 'wrap' },

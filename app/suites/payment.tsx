@@ -1,3 +1,4 @@
+import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ const { width } = Dimensions.get('window');
 export default function PaymentScreen() {
     const { total, name, roomId, checkIn, checkOut, guests } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
 
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('flutterwave');
@@ -89,8 +91,10 @@ export default function PaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Suite Reservation Placed",
-                `Your stay at ${name} has been processed via Flutterwave.`
+                verifyResult.is_paid ? 'Suite Reservation Confirmed' : 'Suite Payment Pending',
+                verifyResult.is_paid
+                    ? `Your stay at ${name} has been verified and confirmed.`
+                    : 'Your payment has not yet been verified. Check your booking status before arrival.'
             );
 
             setIsSuccess(true);
@@ -104,6 +108,10 @@ export default function PaymentScreen() {
 
     // 🏦 Manual Bank Transfer
     const handleFinishManual = async () => {
+        if (!manualBankDetails.isConfigured) {
+            Alert.alert('Unavailable', 'Manual transfer is not enabled. Please choose Flutterwave.');
+            return;
+        }
         if (!roomId || !checkIn || !checkOut || !receiptAsset) {
             Alert.alert("Error", "Missing booking information or payment proof.");
             return;
@@ -166,7 +174,9 @@ export default function PaymentScreen() {
                 <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
                     {bookingDetails?.isPaid 
                         ? `Your luxury stay at ${name} has been verified and confirmed via Flutterwave.` 
-                        : `Your reservation at ${name} has been placed. Our concierge team is verifying the receipt.`}
+                        : bookingDetails?.method === 'flutterwave'
+                            ? `Your reservation at ${name} has been received. Payment confirmation is still pending; please check My Stays for updates.`
+                            : `Your reservation at ${name} has been received. Our concierge team will review your transfer against the bank statement.`}
                 </Text>
 
                 {/* 🧾 Executive Booking Receipt Card */}
@@ -177,7 +187,7 @@ export default function PaymentScreen() {
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: bookingDetails?.isPaid ? '#27AE60' + '20' : '#F39C12' + '20' }]}>
                             <Text style={[styles.statusBadgeText, { color: bookingDetails?.isPaid ? '#27AE60' : '#F39C12', fontFamily: fonts.button }]}>
-                                {bookingDetails?.isPaid ? 'CONFIRMED' : 'PENDING REVIEW'}
+                                {bookingDetails?.isPaid ? 'CONFIRMED' : bookingDetails?.method === 'flutterwave' ? 'PENDING VERIFICATION' : 'PENDING TRANSFER REVIEW'}
                             </Text>
                         </View>
                     </View>
@@ -226,7 +236,7 @@ export default function PaymentScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.receiptRow}>
-                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>Total Paid</Text>
+                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>{bookingDetails?.isPaid ? 'Total Paid' : 'Amount Due / Submitted'}</Text>
                         <Text style={[styles.receiptTotalValue, { color: colors.tint, fontFamily: fonts.heading }]}>
                             ₦{Number(total).toLocaleString()}
                         </Text>
@@ -292,32 +302,33 @@ export default function PaymentScreen() {
                 {/* 💳 Payment Method Selector */}
                 <PaymentMethodSelector 
                     selectedMethod={selectedMethod} 
-                    onSelect={setSelectedMethod} 
+                    onSelect={setSelectedMethod}
+                    manualBankDetails={manualBankDetails} 
                 />
 
                 {/* Dynamic Content based on selected method */}
-                {selectedMethod === 'opay' ? (
-                    <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
-                        <View style={styles.opayNoticeHeader}>
+                {selectedMethod === 'flutterwave' ? (
+                    <View style={[styles.gatewayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
+                        <View style={styles.gatewayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
-                            <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Secure Cashier
+                            <Text style={[styles.gatewayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
-                        <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
+                        <Text style={[styles.gatewayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
                             Upon clicking proceed, an in-app checkout will open supporting:
                         </Text>
-                        <View style={styles.opayBulletRow}>
+                        <View style={styles.gatewayBulletRow}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.tint} />
-                            <Text style={[styles.opayBulletText, { color: colors.text }]}>OPay Wallet (One-tap payment)</Text>
+                            <Text style={[styles.gatewayBulletText, { color: colors.text }]}>Secure online checkout</Text>
                         </View>
-                        <View style={styles.opayBulletRow}>
+                        <View style={styles.gatewayBulletRow}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.tint} />
-                            <Text style={[styles.opayBulletText, { color: colors.text }]}>Instant Bank Transfer (Auto-detected)</Text>
+                            <Text style={[styles.gatewayBulletText, { color: colors.text }]}>Instant Bank Transfer (Auto-detected)</Text>
                         </View>
-                        <View style={styles.opayBulletRow}>
+                        <View style={styles.gatewayBulletRow}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.tint} />
-                            <Text style={[styles.opayBulletText, { color: colors.text }]}>Debit Cards (Mastercard, Visa, Verve)</Text>
+                            <Text style={[styles.gatewayBulletText, { color: colors.text }]}>Debit Cards (Mastercard, Visa, Verve)</Text>
                         </View>
                     </View>
                 ) : (
@@ -327,15 +338,15 @@ export default function PaymentScreen() {
                             <View style={[styles.bankCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Bank Name</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>First Executive Bank</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.bankName || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Account Number</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>0123 4567 8910</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountNumber || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Account Name</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>Insignia Courts Group</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountName || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Reference</Text>
@@ -377,7 +388,7 @@ export default function PaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isBooking}
@@ -463,12 +474,12 @@ const styles = StyleSheet.create({
     finishBtnGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
     finishBtnText: { color: '#FFF', fontSize: 15, letterSpacing: 1 },
     btnRow: { flexDirection: 'row', alignItems: 'center' },
-    opayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
-    opayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-    opayNoticeTitle: { fontSize: 16, marginLeft: 10 },
-    opayNoticeText: { fontSize: 13, opacity: 0.7, marginBottom: 12, lineHeight: 18 },
-    opayBulletRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-    opayBulletText: { fontSize: 13, marginLeft: 8 },
+    gatewayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
+    gatewayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    gatewayNoticeTitle: { fontSize: 16, marginLeft: 10 },
+    gatewayNoticeText: { fontSize: 13, opacity: 0.7, marginBottom: 12, lineHeight: 18 },
+    gatewayBulletRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+    gatewayBulletText: { fontSize: 13, marginLeft: 8 },
     successCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
     successTitle: { fontSize: 22, marginBottom: 10, textAlign: 'center' },
     successMsg: { fontSize: 14, textAlign: 'center', opacity: 0.7, lineHeight: 22, paddingHorizontal: 20, marginBottom: 25 },

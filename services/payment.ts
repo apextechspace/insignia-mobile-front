@@ -22,10 +22,6 @@ export interface PaymentVerifyResponse {
     message?: string;
 }
 
-// Backward-compatibility aliases
-export type OPayInitResponse = PaymentInitResponse;
-export type OPayVerifyResponse = PaymentVerifyResponse;
-
 export const paymentService = {
     /**
      * Request Flutterwave checkout payment URL from backend
@@ -69,16 +65,4 @@ export const paymentService = {
         return this.openFlutterwaveCheckout(paymentUrl);
     },
 
-    // Legacy method wrappers to prevent breaking older views
-    async initializeOPay(orderType: OrderType, orderId: number): Promise<PaymentInitResponse> {
-        return this.initializeFlutterwave(orderType, orderId);
-    },
-
-    async verifyOPay(reference: string): Promise<PaymentVerifyResponse> {
-        return this.verifyFlutterwave(reference);
-    },
-
-    async openOPayCashier(cashierUrl: string): Promise<WebBrowser.WebBrowserAuthSessionResult> {
-        return this.openFlutterwaveCheckout(cashierUrl);
-    },
 };

@@ -1,3 +1,4 @@
+import { useManualBankDetails } from '../../config/manualBank';
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -24,6 +25,7 @@ type CartItem = {
 export default function DiningPaymentScreen() {
     const { total, serviceName, type, items } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -116,8 +118,10 @@ export default function DiningPaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Dining Order Confirmed",
-                `Your order for ${serviceName || 'Dining'} has been processed via Flutterwave.`
+                verifyResult.is_paid ? 'Dining Payment Confirmed' : 'Dining Payment Pending',
+                verifyResult.is_paid
+                    ? `Your dining payment for ${serviceName || 'Dining'} has been verified.`
+                    : 'Payment is awaiting verification. Kitchen preparation has not started.'
             );
 
             setIsSuccess(true);
@@ -131,6 +135,10 @@ export default function DiningPaymentScreen() {
 
     // 🏦 Manual Bank Transfer
     const handleFinishManual = async () => {
+        if (!manualBankDetails.isConfigured) {
+            Alert.alert('Unavailable', 'Manual transfer is not enabled. Please choose Flutterwave.');
+            return;
+        }
         if (cartItems.length === 0) {
             Alert.alert('Error', 'Your cart is empty. Please go back and add an item first.');
             return;
@@ -314,19 +322,20 @@ export default function DiningPaymentScreen() {
                 {/* 💳 Payment Method Selector */}
                 <PaymentMethodSelector 
                     selectedMethod={selectedMethod} 
-                    onSelect={setSelectedMethod} 
+                    onSelect={setSelectedMethod}
+                    manualBankDetails={manualBankDetails} 
                 />
 
-                {selectedMethod === 'opay' ? (
-                    <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
-                        <View style={styles.opayNoticeHeader}>
+                {selectedMethod === 'flutterwave' ? (
+                    <View style={[styles.gatewayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
+                        <View style={styles.gatewayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
-                            <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Instant Settlement
+                            <Text style={[styles.gatewayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
-                        <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
-                            Pay effortlessly with one tap from the OPay app, dedicated bank transfer, or debit card. Kitchen starts cooking instantly upon confirmation!
+                        <Text style={[styles.gatewayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
+                            Complete payment securely through Flutterwave. Kitchen preparation begins after verified payment.
                         </Text>
                     </View>
                 ) : (
@@ -336,15 +345,15 @@ export default function DiningPaymentScreen() {
                             <View style={[styles.bankCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Bank Name</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>First Executive Bank</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.bankName || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Account Number</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>0123 4567 8910</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountNumber || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Account Name</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>Insignia Courts Group</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountName || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Reference</Text>
@@ -379,7 +388,7 @@ export default function DiningPaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
@@ -462,10 +471,10 @@ const styles = StyleSheet.create({
     finishBtnGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
     finishBtnText: { color: '#FFF', fontSize: 15, letterSpacing: 1 },
     btnRow: { flexDirection: 'row', alignItems: 'center' },
-    opayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
-    opayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-    opayNoticeTitle: { fontSize: 16, marginLeft: 10 },
-    opayNoticeText: { fontSize: 13, opacity: 0.7, lineHeight: 18 },
+    gatewayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
+    gatewayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    gatewayNoticeTitle: { fontSize: 16, marginLeft: 10 },
+    gatewayNoticeText: { fontSize: 13, opacity: 0.7, lineHeight: 18 },
     successCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
     successTitle: { fontSize: 22, marginBottom: 10, textAlign: 'center' },
     successMsg: { fontSize: 14, textAlign: 'center', opacity: 0.7, lineHeight: 22, paddingHorizontal: 20, marginBottom: 25 },

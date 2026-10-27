@@ -1,3 +1,4 @@
+import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ const { width } = Dimensions.get('window');
 export default function ShopPaymentScreen() {
     const { total, name, id, quantity, delivery_location } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -84,8 +86,10 @@ export default function ShopPaymentScreen() {
             });
 
             await sendLocalNotification(
-                "Order Placed", 
-                `Your boutique order for ${name} was paid via Flutterwave and is being prepared.`
+                verifyResult.is_paid ? 'Boutique Payment Confirmed' : 'Boutique Payment Pending',
+                verifyResult.is_paid
+                    ? `Your boutique payment for ${name} has been verified.`
+                    : 'Payment is awaiting verification. Your order is not yet cleared for dispatch.'
             );
 
             setIsSuccess(true);
@@ -99,6 +103,10 @@ export default function ShopPaymentScreen() {
 
     // 🏦 Direct Bank Transfer
     const handleFinishManual = async () => {
+        if (!manualBankDetails.isConfigured) {
+            Alert.alert('Unavailable', 'Manual transfer is not enabled. Please choose Flutterwave.');
+            return;
+        }
         if (!receiptImage) {
             Alert.alert("Error", "Please upload proof of payment.");
             return;
@@ -136,7 +144,7 @@ export default function ShopPaymentScreen() {
 
             await sendLocalNotification(
                 "Order Placed", 
-                `Your order for ${name} has been received and is being prepared for delivery.`
+                `Your order for ${name} has been received and awaits bank-transfer verification before dispatch.`
             );
 
             setReceiptImage(null);
@@ -211,7 +219,7 @@ export default function ShopPaymentScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.receiptRow}>
-                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>Total Paid</Text>
+                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>{orderDetails?.isPaid ? 'Total Paid' : 'Amount Due / Submitted'}</Text>
                         <Text style={[styles.receiptTotalValue, { color: colors.tint, fontFamily: fonts.heading }]}>
                             ₦{Number(total).toLocaleString()}
                         </Text>
@@ -275,19 +283,20 @@ export default function ShopPaymentScreen() {
                 {/* 💳 Payment Method Selector */}
                 <PaymentMethodSelector 
                     selectedMethod={selectedMethod} 
-                    onSelect={setSelectedMethod} 
+                    onSelect={setSelectedMethod}
+                    manualBankDetails={manualBankDetails} 
                 />
 
-                {selectedMethod === 'opay' ? (
-                    <View style={[styles.opayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
-                        <View style={styles.opayNoticeHeader}>
+                {selectedMethod === 'flutterwave' ? (
+                    <View style={[styles.gatewayNoticeBox, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}>
+                        <View style={styles.gatewayNoticeHeader}>
                             <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
-                            <Text style={[styles.opayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
-                                OPay Instant Cashier
+                            <Text style={[styles.gatewayNoticeTitle, { color: colors.text, fontFamily: fonts.heading }]}>
+                                Flutterwave Secure Checkout
                             </Text>
                         </View>
-                        <Text style={[styles.opayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
-                            Pay effortlessly using your OPay app wallet, instant dedicated bank transfer, or debit card.
+                        <Text style={[styles.gatewayNoticeText, { color: colors.text, fontFamily: fonts.body }]}>
+                            Pay securely using the payment methods available at Flutterwave checkout.
                         </Text>
                     </View>
                 ) : (
@@ -297,15 +306,15 @@ export default function ShopPaymentScreen() {
                             <View style={[styles.bankCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Bank Name</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>First Executive Bank</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.bankName || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Account Number</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>0123 4567 8910</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountNumber || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Account Name</Text>
-                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>Insignia Courts Group</Text>
+                                    <Text style={[styles.bankValue, { color: colors.text, fontFamily: fonts.button }]}>{manualBankDetails.accountName || 'Unavailable'}</Text>
                                 </View>
                                 <View style={styles.bankRow}>
                                     <Text style={[styles.bankKey, { color: colors.text }]}>Reference</Text>
@@ -340,7 +349,7 @@ export default function ShopPaymentScreen() {
             </ScrollView>
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) }]}>
-                {selectedMethod === 'flutterwave' || selectedMethod === 'opay' ? (
+                {selectedMethod === 'flutterwave' ? (
                     <TouchableOpacity
                         style={styles.finishBtn}
                         disabled={isLoading}
@@ -423,10 +432,10 @@ const styles = StyleSheet.create({
     finishBtnGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
     finishBtnText: { color: '#FFF', fontSize: 15, letterSpacing: 1 },
     btnRow: { flexDirection: 'row', alignItems: 'center' },
-    opayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
-    opayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-    opayNoticeTitle: { fontSize: 16, marginLeft: 10 },
-    opayNoticeText: { fontSize: 13, opacity: 0.7, lineHeight: 18 },
+    gatewayNoticeBox: { borderRadius: 16, padding: 20, borderWidth: 1.5, marginBottom: 25 },
+    gatewayNoticeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    gatewayNoticeTitle: { fontSize: 16, marginLeft: 10 },
+    gatewayNoticeText: { fontSize: 13, opacity: 0.7, lineHeight: 18 },
     successCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
     successTitle: { fontSize: 22, marginBottom: 10, textAlign: 'center' },
     successMsg: { fontSize: 14, textAlign: 'center', opacity: 0.7, lineHeight: 22, paddingHorizontal: 20, marginBottom: 25 },

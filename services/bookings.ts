@@ -17,6 +17,12 @@ export interface BookingResponse {
     check_out: string;
     total_price: string;
     status: string;
+    paid_at?: string | null;
+    checked_in_at?: string | null;
+    checked_out_at?: string | null;
+    payment_reference?: string | null;
+    receipt_url?: string | null;
+    room?: { name: string; image?: string };
     created_at: string;
     updated_at: string;
 }

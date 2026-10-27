@@ -2,18 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import type { ManualBankDetails } from '../config/manualBank';
 
-export type PaymentMethod = 'flutterwave' | 'opay' | 'bank_transfer';
+export type PaymentMethod = 'flutterwave' | 'bank_transfer';
 
 interface Props {
     selectedMethod: PaymentMethod;
     onSelect: (method: PaymentMethod) => void;
+    manualBankDetails: ManualBankDetails;
 }
 
-export default function PaymentMethodSelector({ selectedMethod, onSelect }: Props) {
+export default function PaymentMethodSelector({ selectedMethod, onSelect, manualBankDetails }: Props) {
     const { colors, fonts } = useTheme();
 
-    const isFlutterwave = selectedMethod === 'flutterwave' || selectedMethod === 'opay';
+    const isFlutterwave = selectedMethod === 'flutterwave';
 
     return (
         <View style={styles.container}>
@@ -77,7 +79,8 @@ export default function PaymentMethodSelector({ selectedMethod, onSelect }: Prop
                         borderWidth: selectedMethod === 'bank_transfer' ? 2 : 1,
                     },
                 ]}
-                onPress={() => onSelect('bank_transfer')}
+                onPress={() => manualBankDetails.isConfigured && onSelect('bank_transfer')}
+                disabled={!manualBankDetails.isConfigured}
                 activeOpacity={0.8}
             >
                 <View style={styles.cardHeader}>
@@ -91,12 +94,12 @@ export default function PaymentMethodSelector({ selectedMethod, onSelect }: Prop
                             </Text>
                             <View style={[styles.badge, { backgroundColor: '#F39C12' + '20' }]}>
                                 <Text style={[styles.badgeText, { color: '#F39C12', fontFamily: fonts.button }]}>
-                                    MANUAL REVIEW
+                                    {manualBankDetails.isConfigured ? 'MANUAL REVIEW' : 'NOT AVAILABLE'}
                                 </Text>
                             </View>
                         </View>
                         <Text style={[styles.methodDesc, { color: colors.text, fontFamily: fonts.body }]}>
-                            Transfer to corporate account & upload receipt
+                            {manualBankDetails.isConfigured ? 'Transfer to verified corporate account & upload receipt' : 'Bank transfer will be available after account verification'}
                         </Text>
                     </View>
                     <View
