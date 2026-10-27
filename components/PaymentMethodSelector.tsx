@@ -2,16 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
-import { manualBankDetails } from '../config/manualBank';
+import type { ManualBankDetails } from '../config/manualBank';
 
 export type PaymentMethod = 'flutterwave' | 'bank_transfer';
 
 interface Props {
     selectedMethod: PaymentMethod;
     onSelect: (method: PaymentMethod) => void;
+    manualBankDetails: ManualBankDetails;
 }
 
-export default function PaymentMethodSelector({ selectedMethod, onSelect }: Props) {
+export default function PaymentMethodSelector({ selectedMethod, onSelect, manualBankDetails }: Props) {
     const { colors, fonts } = useTheme();
 
     const isFlutterwave = selectedMethod === 'flutterwave';
