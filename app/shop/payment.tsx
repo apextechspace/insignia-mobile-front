@@ -1,4 +1,4 @@
-import { manualBankDetails } from '../../config/manualBank';
+import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,6 +18,7 @@ const { width } = Dimensions.get('window');
 export default function ShopPaymentScreen() {
     const { total, name, id, quantity, delivery_location } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -102,6 +103,10 @@ export default function ShopPaymentScreen() {
 
     // 🏦 Direct Bank Transfer
     const handleFinishManual = async () => {
+        if (!manualBankDetails.isConfigured) {
+            Alert.alert('Unavailable', 'Manual transfer is not enabled. Please choose Flutterwave.');
+            return;
+        }
         if (!receiptImage) {
             Alert.alert("Error", "Please upload proof of payment.");
             return;
@@ -278,7 +283,8 @@ export default function ShopPaymentScreen() {
                 {/* 💳 Payment Method Selector */}
                 <PaymentMethodSelector 
                     selectedMethod={selectedMethod} 
-                    onSelect={setSelectedMethod} 
+                    onSelect={setSelectedMethod}
+                    manualBankDetails={manualBankDetails} 
                 />
 
                 {selectedMethod === 'flutterwave' ? (
