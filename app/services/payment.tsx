@@ -255,7 +255,7 @@ export default function ServicePaymentScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.receiptRow}>
-                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>Total Paid</Text>
+                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>{serviceDetails?.isPaid ? 'Total Paid' : 'Amount Due / Submitted'}</Text>
                         <Text style={[styles.receiptTotalValue, { color: colors.tint, fontFamily: fonts.heading }]}>
                             ₦{unitPrice.toLocaleString()}
                         </Text>
