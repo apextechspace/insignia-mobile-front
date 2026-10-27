@@ -1,4 +1,4 @@
-import { manualBankDetails } from '../../config/manualBank';
+import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ const { width } = Dimensions.get('window');
 export default function PaymentScreen() {
     const { total, name, roomId, checkIn, checkOut, guests } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
 
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('flutterwave');
@@ -107,6 +108,10 @@ export default function PaymentScreen() {
 
     // 🏦 Manual Bank Transfer
     const handleFinishManual = async () => {
+        if (!manualBankDetails.isConfigured) {
+            Alert.alert('Unavailable', 'Manual transfer is not enabled. Please choose Flutterwave.');
+            return;
+        }
         if (!roomId || !checkIn || !checkOut || !receiptAsset) {
             Alert.alert("Error", "Missing booking information or payment proof.");
             return;
@@ -297,7 +302,8 @@ export default function PaymentScreen() {
                 {/* 💳 Payment Method Selector */}
                 <PaymentMethodSelector 
                     selectedMethod={selectedMethod} 
-                    onSelect={setSelectedMethod} 
+                    onSelect={setSelectedMethod}
+                    manualBankDetails={manualBankDetails} 
                 />
 
                 {/* Dynamic Content based on selected method */}
