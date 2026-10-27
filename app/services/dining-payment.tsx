@@ -1,4 +1,4 @@
-import { manualBankDetails } from '../../config/manualBank';
+import { useManualBankDetails } from '../../config/manualBank';
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,6 +25,7 @@ type CartItem = {
 export default function DiningPaymentScreen() {
     const { total, serviceName, type, items } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
+    const manualBankDetails = useManualBankDetails();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -134,6 +135,10 @@ export default function DiningPaymentScreen() {
 
     // 🏦 Manual Bank Transfer
     const handleFinishManual = async () => {
+        if (!manualBankDetails.isConfigured) {
+            Alert.alert('Unavailable', 'Manual transfer is not enabled. Please choose Flutterwave.');
+            return;
+        }
         if (cartItems.length === 0) {
             Alert.alert('Error', 'Your cart is empty. Please go back and add an item first.');
             return;
@@ -317,7 +322,8 @@ export default function DiningPaymentScreen() {
                 {/* 💳 Payment Method Selector */}
                 <PaymentMethodSelector 
                     selectedMethod={selectedMethod} 
-                    onSelect={setSelectedMethod} 
+                    onSelect={setSelectedMethod}
+                    manualBankDetails={manualBankDetails} 
                 />
 
                 {selectedMethod === 'flutterwave' ? (
