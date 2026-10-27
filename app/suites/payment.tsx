@@ -169,7 +169,9 @@ export default function PaymentScreen() {
                 <Text style={[styles.successMsg, { color: colors.text, fontFamily: fonts.body }]}>
                     {bookingDetails?.isPaid 
                         ? `Your luxury stay at ${name} has been verified and confirmed via Flutterwave.` 
-                        : `Your reservation at ${name} has been placed. Our concierge team is verifying the receipt.`}
+                        : bookingDetails?.method === 'flutterwave'
+                            ? `Your reservation at ${name} has been received. Payment confirmation is still pending; please check My Stays for updates.`
+                            : `Your reservation at ${name} has been received. Our concierge team will review your transfer against the bank statement.`}
                 </Text>
 
                 {/* 🧾 Executive Booking Receipt Card */}
@@ -180,7 +182,7 @@ export default function PaymentScreen() {
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: bookingDetails?.isPaid ? '#27AE60' + '20' : '#F39C12' + '20' }]}>
                             <Text style={[styles.statusBadgeText, { color: bookingDetails?.isPaid ? '#27AE60' : '#F39C12', fontFamily: fonts.button }]}>
-                                {bookingDetails?.isPaid ? 'CONFIRMED' : 'PENDING REVIEW'}
+                                {bookingDetails?.isPaid ? 'CONFIRMED' : bookingDetails?.method === 'flutterwave' ? 'PENDING VERIFICATION' : 'PENDING TRANSFER REVIEW'}
                             </Text>
                         </View>
                     </View>
@@ -229,7 +231,7 @@ export default function PaymentScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.receiptRow}>
-                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>Total Paid</Text>
+                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>{bookingDetails?.isPaid ? 'Total Paid' : 'Amount Due / Submitted'}</Text>
                         <Text style={[styles.receiptTotalValue, { color: colors.tint, fontFamily: fonts.heading }]}>
                             ₦{Number(total).toLocaleString()}
                         </Text>
