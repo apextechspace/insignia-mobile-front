@@ -139,7 +139,7 @@ export default function ShopPaymentScreen() {
 
             await sendLocalNotification(
                 "Order Placed", 
-                `Your order for ${name} has been received and is being prepared for delivery.`
+                `Your order for ${name} has been received and awaits bank-transfer verification before dispatch.`
             );
 
             setReceiptImage(null);
@@ -214,7 +214,7 @@ export default function ShopPaymentScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.receiptRow}>
-                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>Total Paid</Text>
+                        <Text style={[styles.receiptTotalKey, { color: colors.text, fontFamily: fonts.heading }]}>{orderDetails?.isPaid ? 'Total Paid' : 'Amount Due / Submitted'}</Text>
                         <Text style={[styles.receiptTotalValue, { color: colors.tint, fontFamily: fonts.heading }]}>
                             ₦{Number(total).toLocaleString()}
                         </Text>
