@@ -1,11 +1,48 @@
-/** Guest-visible manual transfer details must be verified before enabling this method. */
-const bankName = process.env.EXPO_PUBLIC_MANUAL_BANK_NAME?.trim() || '';
-const accountNumber = process.env.EXPO_PUBLIC_MANUAL_ACCOUNT_NUMBER?.replace(/\s+/g, '') || '';
-const accountName = process.env.EXPO_PUBLIC_MANUAL_ACCOUNT_NAME?.trim() || '';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import api from '../services/api';
 
-export const manualBankDetails = {
-    bankName,
-    accountNumber,
-    accountName,
-    isConfigured: Boolean(bankName && /^\d{10}$/.test(accountNumber) && accountName),
+export type ManualBankDetails = {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    isConfigured: boolean;
 };
+
+const unavailable: ManualBankDetails = {
+    bankName: '',
+    accountNumber: '',
+    accountName: '',
+    isConfigured: false,
+};
+
+/**
+ * Server-managed IPL account. Refresh when a payment screen regains focus.
+ * Never fall back to bundled environment or placeholder bank numbers.
+ */
+export function useManualBankDetails(): ManualBankDetails {
+    const [details, setDetails] = useState<ManualBankDetails>(unavailable);
+
+    useFocusEffect(useCallback(() => {
+        let active = true;
+        setDetails(unavailable);
+        api.get('/payment-methods/manual-bank', {
+            headers: { 'Cache-Control': 'no-cache' },
+        }).then(({ data }) => {
+            if (!active) return;
+            const bankName = String(data.bank_name || '').trim();
+            const accountNumber = String(data.account_number || '').trim();
+            const accountName = String(data.account_name || '').trim();
+            const isConfigured = data.is_configured === true
+                && !!bankName && /^\d{10}$/.test(accountNumber) && !!accountName;
+            setDetails(isConfigured
+                ? { bankName, accountNumber, accountName, isConfigured: true }
+                : unavailable);
+        }).catch(() => {
+            if (active) setDetails(unavailable);
+        });
+        return () => { active = false; };
+    }, []));
+
+    return details;
+}
