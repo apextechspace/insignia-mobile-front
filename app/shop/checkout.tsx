@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { roomService } from '../../services/rooms';
 
 const { width } = Dimensions.get('window');
 
 const RESIDENCIES = [
-    { id: '1', name: 'The Imperial Suite (401)' },
-    { id: '2', name: 'Royal Heritage (305)' },
-    { id: '3', name: 'Urban Sanctuary (202)' },
+    { id: '1', name: 'Atala Suite (Standard)' },
+    { id: '2', name: 'Junonia Suite (Standard)' },
+    { id: '3', name: 'Lyria Executive Room' },
+    { id: '4', name: 'Evania Executive Room' },
+    { id: '5', name: 'Morpho Suite' },
+    { id: '6', name: 'Papilio Suite' },
 ];
 
 export default function CheckoutScreen() {
@@ -21,7 +25,36 @@ export default function CheckoutScreen() {
     const insets = useSafeAreaInsets();
 
     const [quantity, setQuantity] = useState(1);
+    const [suites, setSuites] = useState(RESIDENCIES);
     const [selectedSuite, setSelectedSuite] = useState(RESIDENCIES[0].id);
+
+    useEffect(() => {
+        let isMounted = true;
+        roomService.getAllRooms()
+            .then((data: any) => {
+                if (!isMounted || !Array.isArray(data) || data.length === 0) return;
+                const activeRooms = data.filter((r: any) => r.is_available !== false);
+                const mapped = (activeRooms.length > 0 ? activeRooms : data).map((r: any) => {
+                    const rawName = String(r.name || `Suite ${r.id}`).trim();
+                    const type = r.type ? ` (${r.type.replace(' Room', '')})` : '';
+                    const displayName = rawName.toLowerCase().includes('suite') || rawName.toLowerCase().includes('room')
+                        ? `${rawName}${type}`
+                        : `${rawName} Suite${type}`;
+                    return {
+                        id: String(r.id),
+                        name: displayName,
+                    };
+                });
+                if (mapped.length > 0) {
+                    setSuites(mapped);
+                    setSelectedSuite(mapped[0].id);
+                }
+            })
+            .catch(() => {
+                // Silently keep default RESIDENCIES
+            });
+        return () => { isMounted = false; };
+    }, []);
 
     // Robust price parsing (handles numbers, formatted strings, and decimal points)
     const parsePrice = (p: any) => {
@@ -78,7 +111,7 @@ export default function CheckoutScreen() {
                 {/* Delivery Selection */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Deliver to Suite</Text>
-                    {RESIDENCIES.map((suite) => (
+                    {suites.map((suite) => (
                         <TouchableOpacity
                             key={suite.id}
                             style={[
@@ -133,7 +166,7 @@ export default function CheckoutScreen() {
                             name,
                             id,
                             quantity,
-                            delivery_location: RESIDENCIES.find(s => s.id === selectedSuite)?.name || 'Suite'
+                            delivery_location: suites.find(s => String(s.id) === String(selectedSuite))?.name || 'Suite'
                         }
                     })}
                 >

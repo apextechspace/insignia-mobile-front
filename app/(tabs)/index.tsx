@@ -140,7 +140,7 @@ export default function HomeScreen() {
               </View>
               <View style={{ flex: 1, marginLeft: 15 }}>
                 <Text style={[styles.keycardLabel, { fontFamily: fonts.button }]}>ACTIVE RESIDENT KEY</Text>
-                <Text style={[styles.keycardSuit, { fontFamily: fonts.heading }]}>Imperial Suite • Room 401</Text>
+                <Text style={[styles.keycardSuit, { fontFamily: fonts.heading }]}>Atala Luxury Suite • Room 101</Text>
               </View>
               <View style={styles.timerBadge}>
                 <Ionicons name="time" size={12} color="#FFF" style={{ marginRight: 4 }} />

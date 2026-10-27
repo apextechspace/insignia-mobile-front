@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { sessionService } from './session';
 
 // For real devices, use your machine's local IP address
-export const BACKEND_URL = 'http://192.168.8.199:8000';
+export const BACKEND_URL = 'http://192.168.1.120:8000';
 const DEV_API_URL = `${BACKEND_URL}/api`;
 
 const api = axios.create({
