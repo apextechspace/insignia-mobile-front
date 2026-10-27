@@ -1,4 +1,5 @@
 import React from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,9 +15,15 @@ export default function RoomBookingsScreen() {
     const [bookings, setBookings] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
 
-    React.useEffect(() => {
-        loadBookings();
-    }, []);
+    useFocusEffect(React.useCallback(() => {
+        let active = true;
+        bookingService.getMyBookings()
+            .then(data => { if (active) setBookings(data); })
+            .catch(error => { if (active) console.error('Failed to load bookings:', error); })
+            .finally(() => { if (active) setLoading(false); });
+
+        return () => { active = false; };
+    }, []));
 
     const loadBookings = async () => {
         try {
@@ -59,8 +66,10 @@ export default function RoomBookingsScreen() {
                         <Image source={{ uri: booking.room?.image || 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800' }} style={styles.activeImage} />
                         <View style={styles.activeInfo}>
                             <View style={styles.statusBadgeHolder}>
-                                <View style={[styles.statusBadge, { backgroundColor: booking.status === 'confirmed' ? '#27AE6020' : '#F39C1220' }]}>
-                                    <Text style={[styles.statusText, { color: booking.status === 'confirmed' ? '#27AE60' : '#F39C12' }]}>{booking.status}</Text>
+                                <View style={[styles.statusBadge, { backgroundColor: booking.status === 'completed' || ((booking.status === 'confirmed' || booking.status === 'paid') && booking.paid_at) ? '#27AE6020' : booking.status === 'cancelled' ? '#E74C3C20' : '#F39C1220' }]}>
+                                    <Text style={[styles.statusText, { color: booking.status === 'completed' || ((booking.status === 'confirmed' || booking.status === 'paid') && booking.paid_at) ? '#27AE60' : booking.status === 'cancelled' ? '#E74C3C' : '#F39C12' }]}>
+                                        {booking.checked_out_at ? 'Checked Out' : booking.checked_in_at ? 'Checked In' : booking.status === 'completed' ? 'Completed' : booking.status === 'cancelled' ? 'Cancelled' : booking.paid_at ? 'Payment Confirmed' : 'Awaiting Payment Verification'}
+                                    </Text>
                                 </View>
                             </View>
                             <Text style={[styles.suiteName, { color: colors.text, fontFamily: fonts.heading }]}>{booking.room?.name || 'Luxury Suite'}</Text>
