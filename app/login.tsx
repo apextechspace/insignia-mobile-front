@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../hooks/useTheme';
 import { authService } from '../services/auth';
 import { sessionService } from '../services/session';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -23,6 +24,7 @@ export default function LoginScreen() {
             const response = await authService.login({ email, password });
             if (response.access_token) {
                 await sessionService.setToken(response.access_token);
+                void registerForPushNotificationsAsync().catch(console.error);
             }
             router.replace('/branch-selection');
         } catch (error: any) {

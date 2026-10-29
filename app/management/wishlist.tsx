@@ -39,15 +39,15 @@ export default function WishlistScreen() {
 
             // Combine and filter
             const likedProducts = allProducts
-                .filter((p: any) => wishlist.includes(p.id))
+                .filter((p: any) => wishlist.includes(`product:${p.id}`))
                 .map((p: any) => ({ ...p, wishType: 'product' }));
 
             const likedServices = allServices
-                .filter((s: any) => wishlist.includes(s.id))
+                .filter((s: any) => wishlist.includes(`service:${s.id}`))
                 .map((s: any) => ({ ...s, wishType: 'service' }));
 
             const likedRooms = allRooms
-                .filter((r: any) => wishlist.includes(r.id))
+                .filter((r: any) => wishlist.includes(`room:${r.id}`))
                 .map((r: any) => ({ 
                     ...r, 
                     wishType: 'room', 
@@ -75,7 +75,7 @@ export default function WishlistScreen() {
                         id: item.id, 
                         name: item.name, 
                         price: item.price, 
-                        image: item.image,
+                        image: item.image_url || item.image,
                         category: item.category,
                         description: item.description
                     }
@@ -93,10 +93,10 @@ export default function WishlistScreen() {
             onPress={() => handleNavigate(item)}
         >
             <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image }} style={styles.itemImage} />
+                <Image source={{ uri: item.image_url || item.image }} style={styles.itemImage} />
                 <TouchableOpacity 
                     style={styles.removeBtn}
-                    onPress={() => toggleWishlist(item.id)}
+                    onPress={() => toggleWishlist(item.id, item.wishType)}
                 >
                     <Ionicons name="close" size={16} color="#FFF" />
                 </TouchableOpacity>
@@ -108,7 +108,7 @@ export default function WishlistScreen() {
                 <Text style={[styles.itemName, { color: colors.text, fontFamily: fonts.heading }]} numberOfLines={1}>
                     {item.name}
                 </Text>
-                <Text style={[styles.itemPrice, { color: colors.tint, fontFamily: fonts.button }]}>{item.price}</Text>
+                <Text style={[styles.itemPrice, { color: colors.tint, fontFamily: fonts.button }]}>{item.wishType === 'room' ? item.price : `₦${Number(item.price).toLocaleString()}`}</Text>
             </View>
         </TouchableOpacity>
     );

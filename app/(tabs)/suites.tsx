@@ -71,12 +71,12 @@ export default function RoomSelectionScreen() {
         )}
         <TouchableOpacity 
           style={styles.wishlistBtn}
-          onPress={() => toggleWishlist(item.id)}
+          onPress={() => toggleWishlist(item.id, 'room')}
         >
           <Ionicons 
-            name={isInWishlist(item.id) ? "heart" : "heart-outline"} 
+            name={isInWishlist(item.id, 'room') ? "heart" : "heart-outline"}
             size={22} 
-            color={isInWishlist(item.id) ? colors.tint : "#FFF"} 
+            color={isInWishlist(item.id, 'room') ? colors.tint : "#FFF"}
           />
         </TouchableOpacity>
       </View>

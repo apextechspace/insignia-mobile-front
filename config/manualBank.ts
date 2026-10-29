@@ -20,13 +20,14 @@ const unavailable: ManualBankDetails = {
  * Server-managed IPL account. Refresh when a payment screen regains focus.
  * Never fall back to bundled environment or placeholder bank numbers.
  */
-export function useManualBankDetails(): ManualBankDetails {
+export function useManualBankDetails(orderType: 'booking' | 'order' | 'food_order' | 'service_booking' = 'booking'): ManualBankDetails {
     const [details, setDetails] = useState<ManualBankDetails>(unavailable);
 
     useFocusEffect(useCallback(() => {
         let active = true;
         setDetails(unavailable);
         api.get('/payment-methods/manual-bank', {
+            params: { order_type: orderType },
             headers: { 'Cache-Control': 'no-cache' },
         }).then(({ data }) => {
             if (!active) return;
@@ -42,7 +43,7 @@ export function useManualBankDetails(): ManualBankDetails {
             if (active) setDetails(unavailable);
         });
         return () => { active = false; };
-    }, []));
+    }, [orderType]));
 
     return details;
 }

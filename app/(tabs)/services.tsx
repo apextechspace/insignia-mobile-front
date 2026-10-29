@@ -85,12 +85,12 @@ export default function ServicesHub() {
                 </View>
                 <TouchableOpacity 
                     style={styles.wishlistBtn}
-                    onPress={() => toggleWishlist(item.id)}
+                    onPress={() => toggleWishlist(item.id, 'service')}
                 >
                     <Ionicons 
-                        name={isInWishlist(item.id) ? "heart" : "heart-outline"} 
+                        name={isInWishlist(item.id, 'service') ? "heart" : "heart-outline"}
                         size={20} 
-                        color={isInWishlist(item.id) ? colors.tint : "#FFF"} 
+                        color={isInWishlist(item.id, 'service') ? colors.tint : "#FFF"}
                     />
                 </TouchableOpacity>
             </View>

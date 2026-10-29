@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { bookingService } from '../../services/bookings';
 import { paymentService } from '../../services/payment';
 import { sendLocalNotification } from '../../utils/notifications';
+import { appendImage } from '../../utils/uploads';
 import PaymentMethodSelector, { PaymentMethod } from '../../components/PaymentMethodSelector';
 
 const { width } = Dimensions.get('window');
@@ -126,15 +127,7 @@ export default function PaymentScreen() {
             formData.append('guests', String(guests || 1));
             formData.append('payment_reference', reference);
 
-            const uri = receiptAsset.uri;
-            const filename = uri.split('/').pop() || 'receipt.jpg';
-            const type = receiptAsset.mimeType || 'image/jpeg';
-
-            formData.append('receipt', {
-                uri: uri,
-                name: filename,
-                type: type,
-            } as any);
+            await appendImage(formData, 'receipt', receiptAsset);
 
             const bookingResponse = await bookingService.createBooking(formData);
 

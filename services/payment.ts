@@ -30,6 +30,7 @@ export const paymentService = {
         const response = await api.post('/payments/flutterwave/initialize', {
             order_type: orderType,
             order_id: orderId,
+            redirect_url: Linking.createURL('payment-complete'),
         });
         return response.data;
     },

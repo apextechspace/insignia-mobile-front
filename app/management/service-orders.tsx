@@ -4,6 +4,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { serviceService } from '../../services/services';
+import { foodService } from '../../services/food';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -13,22 +15,33 @@ export default function ServiceOrdersScreen() {
     const [bookings, setBookings] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
 
-    React.useEffect(() => {
-        loadBookings();
-    }, []);
-
-    const loadBookings = async () => {
+    useFocusEffect(React.useCallback(() => {
+        let active = true;
+        const loadBookings = async () => {
         try {
-            const data = await serviceService.getMyServiceBookings();
+            const [services, dining] = await Promise.all([
+                serviceService.getMyServiceBookings(), foodService.getMyOrders(),
+            ]);
+            const data = [
+                ...services.map((order: any) => ({ ...order, history_key: `service-${order.id}` })),
+                ...dining.data.map((order: any) => ({
+                    ...order, history_key: `dining-${order.id}`, total_price: order.total_amount,
+                    service: { name: 'Dining order' },
+                    notes: order.items?.map((item: any) => `${item.quantity} × ${item.menu_item?.name || 'Menu item'}`).join(', '),
+                })),
+            ];
             // Sort by created_at descending if possible
             const sortedData = data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-            setBookings(sortedData);
+            if (active) setBookings(sortedData);
         } catch (error) {
             console.error('Failed to load service bookings:', error);
         } finally {
-            setLoading(false);
+            if (active) setLoading(false);
         }
-    };
+        };
+        void loadBookings();
+        return () => { active = false; };
+    }, []));
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
@@ -59,14 +72,14 @@ export default function ServiceOrdersScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Your Concierge History</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Your Dining & Concierge History</Text>
 
                 {bookings.length === 0 && (
                     <Text style={{ color: colors.text, opacity: 0.5, textAlign: 'center', marginTop: 40, fontFamily: fonts.body }}>No service records found.</Text>
                 )}
 
                 {bookings.map(order => (
-                    <View key={order.id} style={[styles.activeCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 20 }]}>
+                    <View key={order.history_key} style={[styles.activeCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 20 }]}>
                         <View style={styles.cardHeader}>
                             <View style={[styles.productThumb, { backgroundColor: colors.tint + '15', justifyContent: 'center', alignItems: 'center' }]}>
                                 <Ionicons name="star" size={24} color={colors.tint} />

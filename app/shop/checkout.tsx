@@ -66,7 +66,6 @@ export default function CheckoutScreen() {
 
     const unitPrice = parsePrice(price);
     const total = unitPrice * quantity;
-    const deliveryFee = 5000;
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -142,14 +141,10 @@ export default function CheckoutScreen() {
                         <Text style={[styles.summaryText, { color: colors.text }]}>Subtotal ({quantity} item{quantity > 1 ? 's' : ''})</Text>
                         <Text style={[styles.summaryValue, { color: colors.text }]}>₦{total.toLocaleString()}</Text>
                     </View>
-                    <View style={styles.summaryRow}>
-                        <Text style={[styles.summaryText, { color: colors.text }]}>Executive Delivery</Text>
-                        <Text style={[styles.summaryValue, { color: colors.text }]}>₦{deliveryFee.toLocaleString()}</Text>
-                    </View>
                     <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
                     <View style={styles.summaryRow}>
                         <Text style={[styles.totalLabel, { color: colors.text, fontFamily: fonts.heading }]}>Total Amount</Text>
-                        <Text style={[styles.totalValue, { color: colors.tint, fontFamily: fonts.heading }]}>₦{(total + deliveryFee).toLocaleString()}</Text>
+                        <Text style={[styles.totalValue, { color: colors.tint, fontFamily: fonts.heading }]}>₦{total.toLocaleString()}</Text>
                     </View>
                 </View>
 
@@ -162,7 +157,7 @@ export default function CheckoutScreen() {
                     onPress={() => router.push({
                         pathname: '/shop/payment',
                         params: {
-                            total: total + deliveryFee,
+                            total,
                             name,
                             id,
                             quantity,

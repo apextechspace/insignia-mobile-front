@@ -5,6 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/auth';
 import { BACKEND_URL } from '../../services/api';
+import { appendImage } from '../../utils/uploads';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -61,14 +62,7 @@ export default function EditProfileScreen() {
             formData.append('phone', phone);
 
             if (avatarUri) {
-                const filename = avatarUri.split('/').pop() || 'avatar.jpg';
-                const match = /\.(\w+)$/.exec(filename);
-                const type = match ? `image/${match[1]}` : `image`;
-                formData.append('avatar', {
-                    uri: avatarUri,
-                    name: filename,
-                    type,
-                } as any);
+                await appendImage(formData, 'avatar', { uri: avatarUri });
             }
 
             await authService.updateProfile(formData);

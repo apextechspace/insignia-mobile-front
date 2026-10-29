@@ -78,12 +78,12 @@ export default function SuiteDetailScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={styles.heartBtn}
-                        onPress={() => toggleWishlist(room.id)}
+                        onPress={() => toggleWishlist(room.id, 'room')}
                     >
                         <Ionicons 
-                            name={isInWishlist(room.id) ? "heart" : "heart-outline"} 
+                            name={isInWishlist(room.id, 'room') ? "heart" : "heart-outline"}
                             size={24} 
-                            color={isInWishlist(room.id) ? colors.tint : "#FFF"} 
+                            color={isInWishlist(room.id, 'room') ? colors.tint : "#FFF"}
                         />
                     </TouchableOpacity>
 

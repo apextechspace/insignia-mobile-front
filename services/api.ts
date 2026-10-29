@@ -2,12 +2,15 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import { sessionService } from './session';
 
-// For real devices, use your machine's local IP address
-export const BACKEND_URL = 'http://192.168.1.120:8000';
-const DEV_API_URL = `${BACKEND_URL}/api`;
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '');
+if (!__DEV__ && (!configuredApiUrl || !configuredApiUrl.startsWith('https://'))) {
+    throw new Error('Set EXPO_PUBLIC_API_URL to the HTTPS backend API URL before building for production.');
+}
+const apiUrl = configuredApiUrl || 'http://192.168.1.120:8000/api';
+export const BACKEND_URL = apiUrl.replace(/\/api$/, '');
 
 const api = axios.create({
-    baseURL: process.env.EXPO_PUBLIC_API_URL || DEV_API_URL,
+    baseURL: apiUrl,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

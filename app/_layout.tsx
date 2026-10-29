@@ -171,6 +171,7 @@ function RootLayoutNav() {
           <Stack.Screen name="suites/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="suites/book" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="suites/payment" options={{ headerShown: false }} />
+          <Stack.Screen name="payment-complete" options={{ headerShown: false }} />
           <Stack.Screen name="shop/index" options={{ headerShown: false }} />
           <Stack.Screen name="shop/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="shop/checkout" options={{ headerShown: false, presentation: 'modal' }} />

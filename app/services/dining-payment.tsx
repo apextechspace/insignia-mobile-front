@@ -11,6 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { foodService } from '../../services/food';
 import { paymentService } from '../../services/payment';
 import { sendLocalNotification } from '../../utils/notifications';
+import { appendImage } from '../../utils/uploads';
 import PaymentMethodSelector, { PaymentMethod } from '../../components/PaymentMethodSelector';
 
 const { width } = Dimensions.get('window');
@@ -25,7 +26,7 @@ type CartItem = {
 export default function DiningPaymentScreen() {
     const { total, serviceName, type, items } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
-    const manualBankDetails = useManualBankDetails();
+    const manualBankDetails = useManualBankDetails('food_order');
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -162,15 +163,7 @@ export default function DiningPaymentScreen() {
                 formData.append(`items[${index}][quantity]`, String(item.quantity));
             });
 
-            const uri = receiptAsset.uri;
-            const filename = uri.split('/').pop() || 'receipt.jpg';
-            const fileType = receiptAsset.mimeType || 'image/jpeg';
-
-            formData.append('receipt', {
-                uri,
-                name: filename,
-                type: fileType,
-            } as any);
+            await appendImage(formData, 'receipt', receiptAsset);
 
             const orderResponse = await foodService.placeOrderWithReceipt(formData);
             const createdOrder = orderResponse.data;

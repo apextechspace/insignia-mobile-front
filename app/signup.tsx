@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../services/auth';
 import { sessionService } from '../services/session';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -38,6 +39,7 @@ export default function SignupScreen() {
 
             if (response.access_token) {
                 await sessionService.setToken(response.access_token);
+                void registerForPushNotificationsAsync().catch(console.error);
             }
 
             // For now, proceed as if successful

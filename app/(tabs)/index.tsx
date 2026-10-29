@@ -5,6 +5,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWishlist } from '../../hooks/useWishlist';
+import { useFocusEffect } from '@react-navigation/native';
+import { bookingService, type BookingResponse } from '../../services/bookings';
+import { productService } from '../../services/products';
+import { sessionService } from '../../services/session';
 
 import { authService } from '../../services/auth';
 import api from '../../services/api';
@@ -28,21 +32,32 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [userProfile, setUserProfile] = React.useState<any>(null);
-  const [hasActiveBooking] = React.useState(true); // Toggle true for presentational mockup
-  const [pinCode, setPinCode] = React.useState('8 4 2 1');
-  const [timeLeft, setTimeLeft] = React.useState(60);
+  const [activeStay, setActiveStay] = React.useState<BookingResponse | null>(null);
+  const [featuredProducts, setFeaturedProducts] = React.useState<any[]>([]);
   const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [unreadCount, setUnreadCount] = React.useState(0);
 
-  React.useEffect(() => {
+  useFocusEffect(React.useCallback(() => {
+    let active = true;
     const fetchData = async () => {
+      setUserProfile(null);
+      setActiveStay(null);
+      setUnreadCount(0);
+      productService.getAllProducts().then(products => {
+        if (active) setFeaturedProducts(products.slice(0, 3));
+      }).catch(() => { if (active) setFeaturedProducts([]); });
+      if (!(await sessionService.getToken())) return;
       try {
-        const [userData, notifData] = await Promise.all([
+        const [userData, notifData, stays] = await Promise.all([
           authService.getUser(),
-          api.get('/notifications')
+          api.get('/notifications'),
+          bookingService.getMyBookings(),
         ]);
+        if (!active) return;
         setUserProfile(userData);
+        setActiveStay(stays.find(stay => stay.paid_at && stay.checked_in_at && !stay.checked_out_at
+          && ['confirmed', 'paid'].includes(stay.status)) || null);
         const unread = notifData.data.data.filter((n: any) => !n.read_at).length;
         setUnreadCount(unread);
       } catch (error) {
@@ -50,29 +65,8 @@ export default function HomeScreen() {
       }
     };
     fetchData();
-  }, []);
-
-  React.useEffect(() => {
-    if (!hasActiveBooking) return;
-
-    const generatePin = () => {
-      return Math.floor(1000 + Math.random() * 9000).toString().split('').join(' ');
-    };
-
-    setPinCode(generatePin()); // setup initial random
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setPinCode(generatePin());
-          return 60;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [hasActiveBooking]);
+    return () => { active = false; };
+  }, []));
 
   const renderServiceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -126,7 +120,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {hasActiveBooking && (
+      {activeStay && (
         <View style={styles.keycardContainer}>
           <LinearGradient
             colors={[colors.tint, '#5D1031']}
@@ -139,27 +133,23 @@ export default function HomeScreen() {
                 <Ionicons name="key" size={22} color={colors.tint} />
               </View>
               <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={[styles.keycardLabel, { fontFamily: fonts.button }]}>ACTIVE RESIDENT KEY</Text>
-                <Text style={[styles.keycardSuit, { fontFamily: fonts.heading }]}>Atala Luxury Suite • Room 101</Text>
+                <Text style={[styles.keycardLabel, { fontFamily: fonts.button }]}>YOUR CURRENT STAY</Text>
+                <Text style={[styles.keycardSuit, { fontFamily: fonts.heading }]}>{activeStay.room?.name || 'Your Suite'}</Text>
               </View>
               <View style={styles.timerBadge}>
                 <Ionicons name="time" size={12} color="#FFF" style={{ marginRight: 4 }} />
-                <Text style={[styles.keycardTimer, { fontFamily: fonts.button }]}>{timeLeft}s</Text>
+                <Text style={[styles.keycardTimer, { fontFamily: fonts.button }]}>Checked in</Text>
               </View>
             </View>
 
             <View style={styles.keycardCodeRow}>
-              <Text style={[styles.keycardPIN, { fontFamily: fonts.heading }]}>{pinCode}</Text>
-              <Text style={[styles.keycardSub, { fontFamily: fonts.body }]}>Dynamic Bluetooth Entry Code</Text>
+              <Text style={[styles.keycardSub, { fontFamily: fonts.body }]}>Departure: {activeStay.check_out}</Text>
+              <Text style={[styles.keycardSub, { fontFamily: fonts.body }]}>Please contact reception for room access assistance.</Text>
             </View>
 
-            <TouchableOpacity style={styles.keycardBtn} onPress={() => {
-              const code = pinCode.replace(/ /g, '');
-              const Alert = require('react-native').Alert;
-              Alert.alert("Access Granted", `Dynamic key ${code} accepted via BLE MESH bridge.`);
-            }}>
-              <Ionicons name="bluetooth" size={18} color={colors.tint} style={{ marginRight: 8 }} />
-              <Text style={[styles.keycardBtnText, { color: colors.tint, fontFamily: fonts.button }]}>TAP TO UNLOCK</Text>
+            <TouchableOpacity style={styles.keycardBtn} onPress={() => router.push('/management/bookings')}>
+              <Ionicons name="calendar-outline" size={18} color={colors.tint} style={{ marginRight: 8 }} />
+              <Text style={[styles.keycardBtnText, { color: colors.tint, fontFamily: fonts.button }]}>VIEW MY STAYS</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
@@ -210,11 +200,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-          {[
-            { id: '1', name: 'Midnight Oud Candle', price: '₦65,000', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=300&q=80' },
-            { id: '2', name: 'Silk Sleep Mask', price: '₦45,000', image: 'https://images.unsplash.com/photo-1606103836293-0a063ee20566?auto=format&fit=crop&w=300&q=80' },
-            { id: '3', name: 'Ceramic Essential Diffuser', price: '₦120,000', image: 'https://images.unsplash.com/photo-1602928321679-560bb453f190?auto=format&fit=crop&w=300&q=80' },
-          ].map((item) => (
+          {featuredProducts.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[styles.productCard, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -222,7 +208,7 @@ export default function HomeScreen() {
             >
               <View style={styles.productImageWrapper}>
                 <Image
-                  source={{ uri: item.image }}
+                  source={{ uri: item.image_url }}
                   style={styles.productImage}
                 />
                 <View style={[styles.productBadge, { backgroundColor: colors.tint + '20' }]}>
@@ -230,18 +216,18 @@ export default function HomeScreen() {
                 </View>
                 <TouchableOpacity 
                   style={styles.wishlistBtn}
-                  onPress={() => toggleWishlist(item.id)}
+                  onPress={() => toggleWishlist(String(item.id))}
                 >
                   <Ionicons 
-                    name={isInWishlist(item.id) ? "heart" : "heart-outline"} 
+                    name={isInWishlist(String(item.id)) ? "heart" : "heart-outline"}
                     size={16} 
-                    color={isInWishlist(item.id) ? colors.tint : "#FFF"} 
+                    color={isInWishlist(String(item.id)) ? colors.tint : "#FFF"}
                   />
                 </TouchableOpacity>
               </View>
               <Text style={[styles.productName, { color: colors.text, fontFamily: fonts.body }]} numberOfLines={1}>{item.name}</Text>
               <View style={styles.productFooter}>
-                <Text style={[styles.productPrice, { color: colors.tint, fontFamily: fonts.button }]}>{item.price}</Text>
+                <Text style={[styles.productPrice, { color: colors.tint, fontFamily: fonts.button }]}>₦{Number(item.price).toLocaleString()}</Text>
                 <Ionicons name="add-circle" size={24} color={colors.tint} />
               </View>
             </TouchableOpacity>

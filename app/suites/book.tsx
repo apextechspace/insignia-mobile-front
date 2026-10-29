@@ -148,14 +148,10 @@ export default function BookingScreen() {
                         <Text style={[styles.summaryText, { color: colors.text }]}>Stay ({nights} {nights === 1 ? 'night' : 'nights'})</Text>
                         <Text style={[styles.summaryValue, { color: colors.text }]}>₦{(basePrice * nights).toLocaleString()}</Text>
                     </View>
-                    <View style={styles.summaryRow}>
-                        <Text style={[styles.summaryText, { color: colors.text }]}>Executive Service Fee</Text>
-                        <Text style={[styles.summaryValue, { color: colors.text }]}>₦25,000</Text>
-                    </View>
                     <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
                     <View style={styles.summaryRow}>
                         <Text style={[styles.totalLabel, { color: colors.text, fontFamily: fonts.heading }]}>Total Amount</Text>
-                        <Text style={[styles.totalValue, { color: colors.tint, fontFamily: fonts.heading }]}>₦{(total + 25000).toLocaleString()}</Text>
+                        <Text style={[styles.totalValue, { color: colors.tint, fontFamily: fonts.heading }]}>₦{total.toLocaleString()}</Text>
                     </View>
                 </View>
             </ScrollView>
@@ -166,14 +162,13 @@ export default function BookingScreen() {
                     onPress={() => router.push({
                         pathname: '/suites/payment',
                         params: {
-                            total: total + 25000,
+                            total,
                             name,
                             roomId: id,
                             checkIn: checkInStr,
                             checkOut: checkOutStr,
                             guests,
-                            stayTotal: total,
-                            serviceFee: 25000
+                            stayTotal: total
                         }
                     })}
                 >

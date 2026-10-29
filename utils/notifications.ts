@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import api from '../services/api';
+import { sessionService } from '../services/session';
 
 // Configure how notifications are handled when the app is foregrounded
 if (Platform.OS !== 'web') {
@@ -17,6 +18,7 @@ if (Platform.OS !== 'web') {
 }
 
 export async function registerForPushNotificationsAsync() {
+  if (Platform.OS === 'web') return;
   let token;
 
   if (Platform.OS === 'android') {
@@ -62,6 +64,7 @@ return token;
 
 async function saveTokenToBackend(token: string) {
   try {
+      if (!(await sessionService.getToken())) return;
       await api.post('/user/push-token', { token: token });
       console.log('Push token synced with backend');
   } catch (error) {
@@ -71,6 +74,8 @@ async function saveTokenToBackend(token: string) {
 }
 
 export async function sendLocalNotification(title: string, body: string, data = {}) {
+  if (Platform.OS === 'web') return;
+  try {
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -80,4 +85,7 @@ export async function sendLocalNotification(title: string, body: string, data = 
     },
     trigger: null, // send immediately
   });
+  } catch (error) {
+    console.warn('Local notification could not be displayed:', error);
+  }
 }

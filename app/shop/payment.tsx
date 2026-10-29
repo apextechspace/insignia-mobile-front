@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { productService } from '../../services/products';
 import { paymentService } from '../../services/payment';
 import { sendLocalNotification } from '../../utils/notifications';
+import { appendImage } from '../../utils/uploads';
 import PaymentMethodSelector, { PaymentMethod } from '../../components/PaymentMethodSelector';
 
 const { width } = Dimensions.get('window');
@@ -18,7 +19,7 @@ const { width } = Dimensions.get('window');
 export default function ShopPaymentScreen() {
     const { total, name, id, quantity, delivery_location } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
-    const manualBankDetails = useManualBankDetails();
+    const manualBankDetails = useManualBankDetails('order');
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -121,15 +122,7 @@ export default function ShopPaymentScreen() {
             formData.append('payment_reference', reference);
             formData.append('delivery_location', String(delivery_location || 'Room Delivery'));
 
-            const filename = receiptImage.split('/').pop() || 'receipt.jpg';
-            const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1]}` : `image`;
-
-            formData.append('receipt', {
-                uri: receiptImage,
-                name: filename,
-                type: type,
-            } as any);
+            await appendImage(formData, 'receipt', { uri: receiptImage });
 
             const createdOrder = await productService.createOrder(formData);
 

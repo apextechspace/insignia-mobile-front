@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { serviceService } from '../../services/services';
 import { paymentService } from '../../services/payment';
 import { sendLocalNotification } from '../../utils/notifications';
+import { appendImage } from '../../utils/uploads';
 import PaymentMethodSelector, { PaymentMethod } from '../../components/PaymentMethodSelector';
 
 const { width } = Dimensions.get('window');
@@ -34,7 +35,7 @@ export default function ServicePaymentScreen() {
         destination 
     } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
-    const manualBankDetails = useManualBankDetails();
+    const manualBankDetails = useManualBankDetails('service_booking');
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -73,6 +74,7 @@ export default function ServicePaymentScreen() {
         formData.append('notes', notes as string || 'Standard Request');
         formData.append('scheduled_at', scheduled_at as string || new Date().toISOString());
         formData.append('payment_reference', reference);
+        formData.append('payment_method', selectedMethod);
         
         if (service_variant_id) {
             formData.append('service_variant_id', String(service_variant_id));
@@ -158,15 +160,7 @@ export default function ServicePaymentScreen() {
         try {
             const formData = buildFormData();
 
-            const uri = receiptAsset.uri;
-            const filename = uri.split('/').pop() || 'receipt.jpg';
-            const fileType = receiptAsset.mimeType || 'image/jpeg';
-
-            formData.append('receipt', {
-                uri: uri,
-                name: filename,
-                type: fileType,
-            } as any);
+            await appendImage(formData, 'receipt', receiptAsset);
 
             const createdBooking = await serviceService.bookService(formData);
 

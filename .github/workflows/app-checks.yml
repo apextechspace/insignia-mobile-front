@@ -1,0 +1,20 @@
+name: App checks
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - run: npm run build
+        env:
+          EXPO_PUBLIC_API_URL: https://example.invalid/api

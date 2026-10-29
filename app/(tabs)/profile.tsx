@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Platform } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -68,7 +68,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
             </View>
 
-            {(user?.role === 'admin' || user?.role === 'staff') && (
+            {['admin', 'ipl_admin', 'delivery_partner', 'guest_relations', 'staff'].includes(user?.role) && (
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Executive Management</Text>
                     <MenuItem icon="business-outline" title="Apartment Management" subtitle="Maintenance & Guest Access" onPress={() => router.push('/management/apartment')} />
@@ -88,14 +88,8 @@ export default function ProfileScreen() {
 
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Preferences</Text>
-                <View style={[styles.settingRow, { borderBottomColor: colors.border }]}>
-                    <View style={styles.settingInfo}>
-                        <Ionicons name="notifications-outline" size={22} color={colors.tint} style={styles.settingIcon} />
-                        <Text style={[styles.menuTitle, { color: colors.text, fontFamily: fonts.body }]}>Push Notifications</Text>
-                    </View>
-                    <Switch value={true} trackColor={{ true: colors.tint }} />
-                </View>
-                <MenuItem icon="card-outline" title="Payment Methods" subtitle="Manage saved cards" onPress={() => router.push('/management/payment-methods')} />
+                <MenuItem icon="notifications-outline" title="Notification Settings" subtitle="Device permissions and alerts" onPress={() => Platform.OS === 'web' ? router.push('/management/notifications') : Linking.openSettings()} />
+                <MenuItem icon="card-outline" title="Payment Methods" subtitle="View available payment options" onPress={() => router.push('/management/payment-methods')} />
                 <MenuItem icon="shield-checkmark-outline" title="Security PIN" subtitle={user?.has_security_pin ? 'PIN is active' : 'Set up your PIN'} onPress={() => router.push(user?.has_security_pin ? '/management/security-check' : '/management/create-pin')} />
             </View>
 
