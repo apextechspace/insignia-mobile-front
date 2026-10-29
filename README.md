@@ -9,7 +9,7 @@ Run `npm ci`. Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_URL` 
 ## Checks and web build
 
 - `npx tsc --noEmit`
-- `npm run build` — creates the static web export under `dist`; production builds require an HTTPS API URL.
+- `npm run build` — clears Metro's cached transforms and creates the static web export under `dist`; production builds require an HTTPS API URL. Clearing the cache ensures a previous sample API URL is not reused after configuration changes.
 
 CI uses `https://example.invalid/api` solely to compile the app. Rebuild with the actual backend URL before deployment; do not deploy the CI sample configuration.
 
