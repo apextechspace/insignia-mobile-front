@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,8 +12,6 @@ import { sessionService } from '../../services/session';
 
 import { authService } from '../../services/auth';
 import api from '../../services/api';
-
-const { width } = Dimensions.get('window');
 
 const SERVICES = [
   { id: '1', title: 'Rooms and Suites', icon: 'bed-outline', type: 'ion', route: '/(tabs)/suites', gradient: ['#4A0E2E', '#5D1031'] },
@@ -70,6 +68,7 @@ export default function HomeScreen() {
 
   const renderServiceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
+      key={item.id}
       style={styles.cardWrapper}
       onPress={() => {
         if (item.category) {
@@ -181,19 +180,13 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Our Service Offerings</Text>
           <Text style={[styles.viewAll, { color: colors.tint, fontFamily: fonts.body, opacity: 0.6 }]}>QUICK ACCESS</Text>
         </View>
-        <FlatList
-          data={SERVICES}
-          renderItem={renderServiceCard}
-          keyExtractor={(item) => item.id}
-          numColumns={3}
-          key={3}
-          scrollEnabled={false}
-          columnWrapperStyle={styles.row}
-        />
+        <View style={styles.row}>
+          {SERVICES.map(item => renderServiceCard({ item }))}
+        </View>
       </View>
 
       <View style={styles.bottomSection}>
-        <View style={styles.sectionHeader}>
+        <View style={[styles.sectionHeader, styles.shopHeader]}>
           <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Shop Selection</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/shop')}>
             <Text style={[styles.viewAll, { color: colors.tint, fontFamily: fonts.body }]}>View Shop</Text>
@@ -422,6 +415,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    gap: 12,
+    flexWrap: 'wrap',
   },
   sectionTitle: {
     fontSize: 18,
@@ -432,6 +427,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   cardWrapper: {
@@ -464,8 +461,11 @@ const styles = StyleSheet.create({
   bottomSection: {
     paddingVertical: 35,
   },
+  shopHeader: {
+    paddingHorizontal: 25,
+  },
   horizontalScroll: {
-    paddingLeft: 25,
+    paddingHorizontal: 25,
   },
   productCard: {
     width: 180,

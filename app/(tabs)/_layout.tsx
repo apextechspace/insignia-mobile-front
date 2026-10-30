@@ -1,7 +1,5 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from '@/constants/Colors';
@@ -14,12 +12,13 @@ function TabBarIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
 }) {
-  return <Ionicons size={24} style={{ marginBottom: -3 }} {...props} />;
+  return <Ionicons size={24} {...props} />;
 }
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 12);
 
   return (
     <Tabs
@@ -30,13 +29,16 @@ export default function TabLayout() {
           backgroundColor: colorScheme === 'dark' ? Colors.dark.card : Colors.light.card,
           borderTopWidth: 0,
           elevation: 0,
-          height: 65 + insets.bottom,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
-          paddingTop: 10,
+          height: 64 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 4,
         },
+        tabBarLabelPosition: 'below-icon',
         tabBarLabelStyle: {
           fontFamily: 'Inter_600SemiBold',
           fontSize: 10,
+          lineHeight: 14,
+          flexShrink: 0,
         },
         headerTitleStyle: {
           fontFamily: 'Cinzel_700Bold',

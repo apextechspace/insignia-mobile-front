@@ -67,6 +67,7 @@ export default function SuiteDetailScreen() {
                         ))}
                     </ScrollView>
                     <LinearGradient
+                        pointerEvents="none"
                         colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.6)']}
                         style={styles.imageOverlay}
                     />
@@ -87,7 +88,7 @@ export default function SuiteDetailScreen() {
                         />
                     </TouchableOpacity>
 
-                    <View style={styles.imageIndicators}>
+                    <View pointerEvents="none" style={styles.imageIndicators}>
                         {roomImages.map((_: any, i: number) => (
                             <View key={i} style={[styles.indicator, { backgroundColor: i === 0 ? '#FFF' : 'rgba(255,255,255,0.4)' }]} />
                         ))}

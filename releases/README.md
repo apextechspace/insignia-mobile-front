@@ -1,6 +1,8 @@
 # Namecheap storefront build
 
-`insignia-stay-web-production.zip` contains the frontend built from source commit `bbeb9ca`, configured for `https://portal.insigniacourts.com/api`. It includes the Apache `.htaccess` rules and payment return page. It contains no backend code or environment files.
+`insignia-stay-web-production.zip` contains the frontend built from the accompanying source on `fix/remove-checkout-fees`, configured for `https://portal.insigniacourts.com/api`. It includes the Apache `.htaccess` rules and payment return page. It contains no backend code or environment files.
+
+The October 29 layout update removes the nested disabled service list that blocked touch scrolling, gives bottom navigation labels enough height above the safe area, and adds side padding to the Shop Selection heading and View Shop link. Decorative room gallery overlays allow gestures through to the photos.
 
 From a private clone of this repository on Namecheap:
 
