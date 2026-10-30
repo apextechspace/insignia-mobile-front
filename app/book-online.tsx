@@ -98,7 +98,12 @@ export default function BookOnline() {
     : field(`${label} (YYYY-MM-DD)`, value, change, { autoCapitalize: 'none' });
   return <ScrollView style={{ flex: 1, backgroundColor: '#f9f7f5' }} contentContainerStyle={{ padding: 24, paddingTop: 52, paddingBottom: 50, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
     <View style={{ width: '100%', maxWidth: 880, gap: 20 }}>
-      <Text style={{ color: '#4b1d3f', fontWeight: '700', letterSpacing: 2 }}>INSIGNIA COURTS</Text>
+      <Image
+        source={require('../assets/images/insignia-logo-trimmed.png')}
+        accessibilityLabel="Insignia Court, Wuse II, Abuja"
+        resizeMode="contain"
+        style={{ width: '100%', maxWidth: 340, height: 108, alignSelf: 'flex-start' }}
+      />
       <Text style={s.title}>Find your next stay</Text>
       <Text style={s.body}>Choose your dates and suite. Book securely without creating a password.</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
