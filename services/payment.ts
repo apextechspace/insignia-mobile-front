@@ -1,6 +1,7 @@
 import api from './api';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 
 export type OrderType = 'booking' | 'order' | 'food_order' | 'service_booking';
 
@@ -30,7 +31,7 @@ export const paymentService = {
         const response = await api.post('/payments/flutterwave/initialize', {
             order_type: orderType,
             order_id: orderId,
-            redirect_url: Linking.createURL('payment-complete'),
+            redirect_url: Platform.OS === 'web' ? `${window.location.origin}/payment-complete` : Linking.createURL('payment-complete'),
         });
         return response.data;
     },
@@ -47,6 +48,15 @@ export const paymentService = {
      * Open Flutterwave secure checkout within an in-app browser session
      */
     async openFlutterwaveCheckout(paymentUrl: string): Promise<WebBrowser.WebBrowserAuthSessionResult> {
+        if (Platform.OS === 'web') {
+            const target = new URL(paymentUrl);
+            if (target.protocol !== 'https:') throw new Error('The payment provider returned an invalid secure checkout link.');
+            // Popup auth sessions can stall after asynchronous email/booking requests.
+            // Hosted checkout returns to payment-complete in this same tab, where
+            // the existing backend verification remains authoritative.
+            window.location.assign(target.href);
+            return { type: WebBrowser.WebBrowserResultType.OPENED };
+        }
         const redirectUrl = Linking.createURL('payment-complete');
         return await WebBrowser.openAuthSessionAsync(paymentUrl, redirectUrl);
     },

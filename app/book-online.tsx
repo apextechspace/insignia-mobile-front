@@ -27,6 +27,8 @@ export default function BookOnline() {
   const [requestId, setRequestId] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [checkoutLink, setCheckoutLink] = useState('');
   const [message, setMessage] = useState('');
   const [booking, setBooking] = useState<any>(null);
   useEffect(() => { void (async () => {
@@ -43,9 +45,9 @@ export default function BookOnline() {
     } catch { router.replace('/book-online'); }
   })(); }, []);
   const run = async (action: () => Promise<void>) => {
-    setBusy(true); setMessage('');
+    setBusy(true); setMessage(''); setProgress('Please wait…');
     try { await action(); } catch (error: any) { setMessage(error.response?.data?.message || error.message || 'Unable to continue. Please try again.'); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setProgress(''); }
   };
   const search = () => run(async () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut) || checkOut <= checkIn) throw new Error('Choose valid check-in and check-out dates.');
@@ -58,19 +60,23 @@ export default function BookOnline() {
     let authorized = signedIn;
     // An email link may have signed this guest in through another browser tab.
     if (!authorized && await sessionService.getToken()) {
+      setProgress('Checking your session…');
       const user = await authService.getUser();
       if (String(user.email).toLowerCase() !== email.trim().toLowerCase()) throw new Error('A different customer is signed in. Please use their email or sign out before continuing.');
       authorized = true; setSignedIn(true);
     }
     if (!authorized) {
       if (!requestId) {
+        setProgress('Sending your email code…');
         setRequestId((await guestAccess.request(email.trim(), name.trim(), phone.trim())).request_id);
         setMessage('We emailed you a code. Enter it here to secure your booking and dashboard access. No password is needed.'); return;
       }
+      setProgress('Verifying your email…');
       await guestAccess.verify(requestId, code); setSignedIn(true);
     }
     let held = booking;
     if (!held) {
+      setProgress('Reserving your suite…');
       const form = new FormData();
       Object.entries({ room_id: room.id, check_in: checkIn, check_out: checkOut, guests,
         guest_name: name.trim(), guest_phone: phone.trim(), special_requests: notes }).forEach(([key, value]) => form.append(key, String(value)));
@@ -80,10 +86,13 @@ export default function BookOnline() {
         throw new Error('The current suite price has changed. Review the updated total, then continue payment.');
       }
     }
-    if (held.hold_expires_at && Date.parse(held.hold_expires_at) <= Date.now()) { setBooking(null); setRoom(null); setRooms(null); throw new Error('Your checkout hold expired. Please check availability again.'); }
+    if (held.hold_expires_at && Date.parse(held.hold_expires_at) <= Date.now()) { setCheckoutLink(''); setBooking(null); setRoom(null); setRooms(null); throw new Error('Your checkout hold expired. Please check availability again.'); }
+    setProgress('Connecting to Flutterwave…');
     const payment = await paymentService.initializeFlutterwave('booking', held.id);
     const checkoutUrl = payment.payment_url || payment.cashier_url;
     if (!checkoutUrl) throw new Error('Unable to open checkout. Please retry.');
+    if (checkoutUrl.startsWith('https://')) setCheckoutLink(checkoutUrl);
+    setProgress('Opening secure payment…');
     await paymentService.openFlutterwaveCheckout(checkoutUrl);
     if (Platform.OS !== 'web') {
       const result = await paymentService.verifyFlutterwave(payment.reference);
@@ -111,7 +120,7 @@ export default function BookOnline() {
         {dateField('Check-out', checkOut, changeDates(setCheckOut), checkIn)}
       </View>
       {field('Guests (1–4)', guests, changeDates(setGuests), { keyboardType: 'number-pad', maxLength: 1 })}
-      {!booking && <TouchableOpacity accessibilityRole="button" style={s.button} disabled={busy} onPress={search}><Text style={s.buttonText}>{busy ? 'Please wait…' : 'Check availability'}</Text></TouchableOpacity>}
+      {!booking && <TouchableOpacity accessibilityRole="button" style={s.button} disabled={busy} onPress={search}><Text style={s.buttonText}>{busy ? progress || 'Please wait…' : 'Check availability'}</Text></TouchableOpacity>}
       {(room ? [room] : rooms)?.map(item => <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Select ${item.name}`} key={item.id} disabled={busy || !!booking} onPress={() => setRoom(item)} style={[s.card, room?.id === item.id && { borderColor: '#4b1d3f', borderWidth: 2 }]}>
         {!!item.image && <Image source={{ uri: item.image }} style={{ height: 180, width: '100%', borderRadius: 10 }} />}
         <Text style={s.subtitle}>{item.name}</Text><Text style={s.body}>{item.type} · {item.nights} nights</Text>
@@ -122,14 +131,22 @@ export default function BookOnline() {
       {!!room && <View style={s.card}>
         {!booking && <TouchableOpacity disabled={busy} onPress={() => setRoom(null)}><Text style={s.link}>Choose a different suite</Text></TouchableOpacity>}
         <Text style={s.subtitle}>Lead guest details</Text>
+        {Platform.OS === 'web' && !!checkoutLink && React.createElement('a', {
+          href: checkoutLink, target: '_self', style: { color: '#4b1d3f', fontWeight: 700, padding: '12px 0' },
+          onClick: (event: any) => {
+            if (booking?.hold_expires_at && Date.parse(booking.hold_expires_at) <= Date.now()) {
+              event.preventDefault(); setCheckoutLink(''); setMessage('Your checkout hold expired. Please check availability again.');
+            }
+          },
+        }, 'Open secure payment if you were not redirected')}
         {field('Full name', name, setName, { autoComplete: 'name' })}
         {field('Email address', email, value => { setEmail(value); setRequestId(''); setCode(''); }, { autoCapitalize: 'none', keyboardType: 'email-address', editable: !busy && !booking && !signedIn })}
         {field('Phone number', phone, setPhone, { keyboardType: 'phone-pad' })}
         {field('Special requests (optional)', notes, setNotes, { multiline: true, maxLength: 2000 })}
         {!signedIn && !!requestId && <>{field('Six-digit email code', code, setCode, { keyboardType: 'number-pad', maxLength: 6 })}<TouchableOpacity onPress={() => { setRequestId(''); setCode(''); }}><Text>Request a new code</Text></TouchableOpacity></>}
         <Text style={s.body}>{booking ? `Suite held until ${new Date(booking.hold_expires_at).toLocaleTimeString()}. Payment must be verified before confirmation.` : 'Your suite is reserved temporarily when checkout starts. Final availability and price are checked by Insignia Courts.'}</Text>
-        <TouchableOpacity accessibilityRole="button" disabled={busy} style={s.button} onPress={checkout}><Text style={s.buttonText}>{busy ? 'Please wait…' : signedIn ? booking ? 'Continue payment' : 'Continue to secure payment' : requestId ? 'Verify email and continue' : 'Continue as guest'}</Text></TouchableOpacity>
-        {!!booking && <><Text style={s.body}>Only release this checkout if you have not paid. Payments received after release require review.</Text><TouchableOpacity disabled={busy} onPress={() => run(async () => { await api.post(`/bookings/${booking.id}/cancel-checkout`); setBooking(null); setRoom(null); setRooms(null); })}><Text style={s.link}>Release checkout and choose again</Text></TouchableOpacity></>}
+        <TouchableOpacity accessibilityRole="button" disabled={busy} style={s.button} onPress={checkout}><Text style={s.buttonText}>{busy ? progress || 'Please wait…' : signedIn ? booking ? 'Continue payment' : 'Continue to secure payment' : requestId ? 'Verify email and continue' : 'Continue as guest'}</Text></TouchableOpacity>
+        {!!booking && <><Text style={s.body}>Only release this checkout if you have not paid. Payments received after release require review.</Text><TouchableOpacity disabled={busy} onPress={() => run(async () => { await api.post(`/bookings/${booking.id}/cancel-checkout`); setCheckoutLink(''); setBooking(null); setRoom(null); setRooms(null); })}><Text style={s.link}>Release checkout and choose again</Text></TouchableOpacity></>}
       </View>}
       {!!message && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: '#5d173c', fontSize: 16 }}>{message}</Text>}
       <TouchableOpacity onPress={() => router.push('/access-stay')}><Text style={s.link}>Already booked? Access My Stay</Text></TouchableOpacity>
