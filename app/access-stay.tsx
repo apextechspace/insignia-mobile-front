@@ -43,6 +43,7 @@ export default function AccessStay() {
       {!!requestId && <TouchableOpacity onPress={() => { setRequestId(''); setLinkToken(''); setCode(''); setMessage(''); }}><Text>Request a new code or use another email</Text></TouchableOpacity>}
       <TouchableOpacity onPress={() => router.push('/login')}><Text>Sign in with a password</Text></TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/book-online')}><Text>Browse available suites</Text></TouchableOpacity>
+      <Text style={{ color: '#70636d', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 24 }}>Managed by Masterpiece Capital</Text>
     </View>
   </ScrollView>;
 }

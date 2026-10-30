@@ -130,6 +130,7 @@ export default function BookOnline() {
       <TouchableOpacity onPress={() => router.push('/access-stay')}><Text style={s.link}>Already booked? Access My Stay</Text></TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/login')}><Text style={s.link}>Sign in with a password</Text></TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/(tabs)')}><Text style={s.link}>Explore services and shop</Text></TouchableOpacity>
+      <Text style={{ color: '#70636d', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 24 }}>Managed by Masterpiece Capital</Text>
     </View>
   </ScrollView>;
 }
