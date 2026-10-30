@@ -18,6 +18,8 @@ export interface BookingResponse {
     total_price: string;
     status: string;
     paid_at?: string | null;
+    hold_expires_at?: string | null;
+    guests?: number;
     checked_in_at?: string | null;
     checked_out_at?: string | null;
     payment_reference?: string | null;

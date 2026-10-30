@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Platform } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,17 +13,21 @@ export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
 
-    useEffect(() => {
+    useFocusEffect(React.useCallback(() => {
+        let active = true;
+        setUser(null);
         const loadUser = async () => {
             try {
+                if (!(await sessionService.getToken())) return;
                 const data = await authService.getUser();
-                setUser(data);
+                if (active) setUser(data);
             } catch (error) {
                 console.error('Failed to load user in profile:', error);
             }
         };
         loadUser();
-    }, []);
+        return () => { active = false; };
+    }, []));
 
     const MenuItem = ({ icon, title, subtitle, onPress }: any) => (
         <TouchableOpacity
@@ -80,6 +85,9 @@ export default function ProfileScreen() {
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Your Activity</Text>
                 <MenuItem icon="calendar-outline" title="Room Bookings" subtitle="Manage your stays" onPress={() => router.push('/management/bookings')} />
+                <MenuItem icon="bed-outline" title="Book another stay" subtitle="Check availability and reserve a suite" onPress={() => router.push('/book-online')} />
+                <MenuItem icon="mail-outline" title="Email sign-in" subtitle="Access your dashboard without a password" onPress={() => router.push('/access-stay')} />
+                <MenuItem icon="lock-closed-outline" title="Set a password" subtitle="Optional password for future sign-ins" onPress={() => router.push('/set-password')} />
                 <MenuItem icon="cart-outline" title="Shop Orders" subtitle="Track luxury purchases" onPress={() => router.push('/management/orders')} />
                 <MenuItem icon="restaurant-outline" title="Service Orders" subtitle="Food, Massage, Transport" onPress={() => router.push('/management/service-orders')} />
                 <MenuItem icon="notifications-outline" title="Notifications" subtitle="Booking updates & alerts" onPress={() => router.push('/management/notifications')} />

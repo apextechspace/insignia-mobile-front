@@ -68,11 +68,14 @@ export default function RoomBookingsScreen() {
                             <View style={styles.statusBadgeHolder}>
                                 <View style={[styles.statusBadge, { backgroundColor: booking.status === 'completed' || ((booking.status === 'confirmed' || booking.status === 'paid') && booking.paid_at) ? '#27AE6020' : booking.status === 'cancelled' ? '#E74C3C20' : '#F39C1220' }]}>
                                     <Text style={[styles.statusText, { color: booking.status === 'completed' || ((booking.status === 'confirmed' || booking.status === 'paid') && booking.paid_at) ? '#27AE60' : booking.status === 'cancelled' ? '#E74C3C' : '#F39C12' }]}>
-                                        {booking.checked_out_at ? 'Checked Out' : booking.checked_in_at ? 'Checked In' : booking.status === 'completed' ? 'Completed' : booking.status === 'cancelled' ? 'Cancelled' : booking.paid_at ? 'Payment Confirmed' : 'Awaiting Payment Verification'}
+                                        {booking.checked_out_at ? 'Checked Out' : booking.checked_in_at ? 'Checked In' : booking.status === 'completed' ? 'Completed' : booking.status === 'cancelled' ? 'Cancelled' : booking.paid_at ? 'Payment Confirmed' : booking.hold_expires_at && Date.parse(booking.hold_expires_at) <= Date.now() ? 'Checkout expired — contact support if paid' : 'Awaiting Payment Verification'}
                                     </Text>
                                 </View>
                             </View>
                             <Text style={[styles.suiteName, { color: colors.text, fontFamily: fonts.heading }]}>{booking.room?.name || 'Luxury Suite'}</Text>
+                            {!booking.paid_at && booking.status === 'pending' && booking.hold_expires_at && Date.parse(booking.hold_expires_at) > Date.now() && (
+                                <TouchableOpacity onPress={() => router.push({ pathname: '/book-online', params: { bookingId: booking.id } })} style={{ paddingVertical: 14 }}><Text style={{ color: colors.text, fontWeight: '700' }}>Continue checkout</Text></TouchableOpacity>
+                            )}
                             <Text style={[styles.roomInfo, { color: colors.text, fontFamily: fonts.body }]}>REF: {booking.payment_reference || 'N/A'} • {booking.check_in} to {booking.check_out}</Text>
 
                             {booking.receipt_url && (

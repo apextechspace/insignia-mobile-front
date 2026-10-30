@@ -25,6 +25,7 @@ export default function PaymentScreen() {
     const [receiptAsset, setReceiptAsset] = useState<any>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isBooking, setIsBooking] = useState(false);
+    const heldBooking = React.useRef<any>(null);
     const [bookingDetails, setBookingDetails] = useState<any>(null);
     const [reference] = useState(`RES-${((typeof name === 'string' ? name : 'SUITE')).substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
 
@@ -64,7 +65,8 @@ export default function PaymentScreen() {
             formData.append('guests', String(guests || 1));
             formData.append('payment_reference', reference);
 
-            const bookingResponse = await bookingService.createBooking(formData);
+            const bookingResponse = heldBooking.current || await bookingService.createBooking(formData);
+            heldBooking.current = bookingResponse;
             const createdBooking = bookingResponse;
 
             // 2. Initialize Flutterwave Checkout Link from backend

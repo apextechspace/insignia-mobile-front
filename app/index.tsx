@@ -21,6 +21,7 @@ export default function SplashScreen() {
         }).start();
 
         const bootstrapSession = async () => {
+            if (Platform.OS === 'web') { router.replace('/book-online'); return; }
             try {
                 await new Promise(resolve => setTimeout(resolve, 1800));
 

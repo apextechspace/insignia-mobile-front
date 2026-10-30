@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -161,7 +161,9 @@ export default function SuiteDetailScreen() {
                 </View>
                 <TouchableOpacity
                     style={styles.bookBtn}
-                    onPress={() => router.push({ pathname: '/suites/book', params: { id, name: room.name, price: room.price_per_night } })}
+                    onPress={() => router.push(Platform.OS === 'web'
+                        ? { pathname: '/book-online', params: { roomId: id } }
+                        : { pathname: '/suites/book', params: { id, name: room.name, price: room.price_per_night } })}
                 >
                     <LinearGradient
                         colors={[colors.tint, '#6B2D5A']}

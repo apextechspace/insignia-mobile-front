@@ -1,5 +1,13 @@
 # Namecheap storefront build
 
+## Guest booking review build
+
+`insignia-stay-guest-booking-preview.zip` is the review build from `feature/guest-booking`. It includes date-based availability, guest details, email sign-in, checkout holds and returning dashboard access. It targets the production API, but must only be deployed after the matching backend branch and `2026_10_30_000001_add_guest_checkout_access` migration are approved and deployed. Live SMTP and gateway behavior still require deployment smoke tests. The existing production ZIP below remains the previous deployed version.
+
+Verify the review build with `sha256sum -c releases/insignia-stay-guest-booking-preview.sha256`. See backend `docs/GUEST_BOOKING_IMPLEMENTATION.md` for the release order and operational checks.
+
+## Previous production build
+
 `insignia-stay-web-production.zip` contains the frontend built from the accompanying source on `fix/remove-checkout-fees`, configured for `https://portal.insigniacourts.com/api`. It includes the Apache `.htaccess` rules and payment return page. It contains no backend code or environment files.
 
 The October 29 layout update removes the nested disabled service list that blocked touch scrolling, gives bottom navigation labels enough height above the safe area, and adds side padding to the Shop Selection heading and View Shop link. Decorative room gallery overlays allow gestures through to the photos.

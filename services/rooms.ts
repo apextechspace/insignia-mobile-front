@@ -1,6 +1,8 @@
 import api from './api';
 
 export const roomService = {
+    getAvailableRooms: async (check_in: string, check_out: string, guests: number) =>
+        (await api.get('/rooms', { params: { check_in, check_out, guests } })).data,
     getAllRooms: async () => {
         const response = await api.get('/rooms');
         return response.data;

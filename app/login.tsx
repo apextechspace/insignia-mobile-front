@@ -61,6 +61,9 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.form}>
+                    <TouchableOpacity onPress={() => router.push('/access-stay')} style={{ paddingVertical: 16 }}>
+                        <Text style={{ color: colors.text }}>Access My Stay with an email sign-in link</Text>
+                    </TouchableOpacity>
                     <View style={styles.inputContainer}>
                         <Text style={[styles.label, { color: colors.text, fontFamily: fonts.body }]}>Email Address</Text>
                         <TextInput

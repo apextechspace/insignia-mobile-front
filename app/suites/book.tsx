@@ -5,6 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { sessionService } from '../../services/session';
 
 export default function BookingScreen() {
     const { id, name, price } = useLocalSearchParams();
@@ -159,8 +160,8 @@ export default function BookingScreen() {
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
                 <TouchableOpacity
                     style={styles.proceedBtn}
-                    onPress={() => router.push({
-                        pathname: '/suites/payment',
+                    onPress={async () => router.push({
+                        pathname: await sessionService.getToken() ? '/suites/payment' : '/book-online',
                         params: {
                             total,
                             name,

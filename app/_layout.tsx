@@ -165,6 +165,9 @@ function RootLayoutNav() {
         }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="book-online" options={{ headerShown: false }} />
+          <Stack.Screen name="access-stay" options={{ headerShown: false }} />
+          <Stack.Screen name="set-password" options={{ headerShown: false }} />
           <Stack.Screen name="signup" options={{ headerShown: false }} />
           <Stack.Screen name="branch-selection" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
