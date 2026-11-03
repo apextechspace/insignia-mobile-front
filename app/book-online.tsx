@@ -50,12 +50,14 @@ export default function BookOnline() {
     finally { setBusy(false); setProgress(''); }
   };
   const search = () => run(async () => {
+    if (!['1', '2'].includes(guests)) throw new Error('Choose one or two guests per room.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut) || checkOut <= checkIn) throw new Error('Choose valid check-in and check-out dates.');
     const data = await roomService.getAvailableRooms(checkIn, checkOut, Number(guests));
     setRooms(data); setRoom(data.find((item: any) => String(item.id) === params.roomId) || null);
     if (!data.length) setMessage('No suites are available for these dates. Please try different dates.');
   });
   const checkout = () => run(async () => {
+    if (!booking && !['1', '2'].includes(guests)) throw new Error('Choose one or two guests per room.');
     if (!room || (!booking && (!name.trim() || phone.trim().length < 7))) throw new Error('Enter the lead guest’s full name and phone number.');
     let authorized = signedIn;
     // An email link may have signed this guest in through another browser tab.
@@ -114,12 +116,12 @@ export default function BookOnline() {
         style={{ width: '100%', maxWidth: 340, height: 108, alignSelf: 'flex-start' }}
       />
       <Text style={s.title}>Find your next stay</Text>
-      <Text style={s.body}>Choose your dates and suite. Book securely without creating a password.</Text>
+      <Text style={s.body}>Choose your dates and rooms. Book securely without creating a password.</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
         {dateField('Check-in', checkIn, changeDates(setCheckIn), day(0))}
         {dateField('Check-out', checkOut, changeDates(setCheckOut), checkIn)}
       </View>
-      {field('Guests (1–4)', guests, changeDates(setGuests), { keyboardType: 'number-pad', maxLength: 1 })}
+      {field('Guests per room (1–2)', guests, changeDates(setGuests), { keyboardType: 'number-pad', maxLength: 1 })}
       {!booking && <TouchableOpacity accessibilityRole="button" style={s.button} disabled={busy} onPress={search}><Text style={s.buttonText}>{busy ? progress || 'Please wait…' : 'Check availability'}</Text></TouchableOpacity>}
       {(room ? [room] : rooms)?.map(item => <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Select ${item.name}`} key={item.id} disabled={busy || !!booking} onPress={() => setRoom(item)} style={[s.card, room?.id === item.id && { borderColor: '#4b1d3f', borderWidth: 2 }]}>
         {!!item.image && <Image source={{ uri: item.image }} style={{ height: 180, width: '100%', borderRadius: 10 }} />}

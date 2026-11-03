@@ -123,12 +123,12 @@ export default function BookingScreen() {
                         <Text style={[styles.guestCount, { color: colors.text, fontFamily: fonts.heading }]}>{guests}</Text>
                         <TouchableOpacity
                             style={[styles.controlBtn, { borderColor: colors.border }]}
-                            onPress={() => setGuests(Math.min(4, guests + 1))}
+                            onPress={() => setGuests(Math.min(2, guests + 1))}
                         >
                             <Ionicons name="add" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>
-                    <Text style={{ fontSize: 12, color: colors.text, opacity: 0.5, marginTop: 8 }}>Max 4 guests per executive residency.</Text>
+                    <Text style={{ fontSize: 12, color: colors.text, opacity: 0.5, marginTop: 8 }}>Maximum 2 guests per room.</Text>
                 </View>
 
                 {/* Requirements */}
