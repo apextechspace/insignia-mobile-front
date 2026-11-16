@@ -109,12 +109,17 @@ export default function BookOnline() {
     : field(`${label} (YYYY-MM-DD)`, value, change, { autoCapitalize: 'none' });
   return <ScrollView style={{ flex: 1, backgroundColor: '#f9f7f5' }} contentContainerStyle={{ padding: 24, paddingTop: 52, paddingBottom: 50, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
     <View style={{ width: '100%', maxWidth: 880, gap: 20 }}>
-      <Image
-        source={require('../assets/images/insignia-logo-trimmed.png')}
-        accessibilityLabel="Insignia Court, Wuse II, Abuja"
-        resizeMode="contain"
-        style={{ width: '100%', maxWidth: 340, height: 108, alignSelf: 'flex-start' }}
-      />
+      <View style={{ width: '100%', maxWidth: 340, alignItems: 'center', gap: 4 }}>
+        <Image
+          source={require('../assets/images/insignia-logo-trimmed.png')}
+          accessibilityLabel="Insignia Court, Wuse II, Abuja"
+          resizeMode="contain"
+          style={{ width: '100%', height: 108 }}
+        />
+        <Text style={{ color: '#70636d', fontSize: 12, lineHeight: 18, textAlign: 'center' }}>
+          Managed by Venmac Resources Limited
+        </Text>
+      </View>
       <Text style={s.title}>Find your next stay</Text>
       <Text style={s.body}>Choose your dates and rooms. Book securely without creating a password.</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
