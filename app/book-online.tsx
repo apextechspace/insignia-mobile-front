@@ -117,7 +117,7 @@ export default function BookOnline() {
           style={{ width: '100%', height: 108 }}
         />
         <Text style={{ color: '#70636d', fontSize: 12, lineHeight: 18, textAlign: 'center' }}>
-          Managed by Venmac Resources Limited
+          Managed by Venmac Hospitality
         </Text>
       </View>
       <Text style={s.title}>Find your next stay</Text>
