@@ -2,6 +2,8 @@
 
 ## Guest booking review build
 
+The November 18 room-offer update adds an optional discount badge to room listings, room details, and booking search. It requires backend migration `2026_11_18_000003_add_room_discount_badges`. The owner-entered nightly price remains the final amount; the badge does not add VAT or deduct a discount. Turning the badge off leaves the price unchanged. Existing bookings and payment calculations are preserved.
+
 `insignia-stay-guest-booking-preview.zip` is the review build from `feature/guest-booking`. It includes date-based availability, guest details, email sign-in, checkout holds and returning dashboard access. It targets the production API, but must only be deployed after the matching backend branch and `2026_10_30_000001_add_guest_checkout_access` migration are approved and deployed. Live SMTP and gateway behavior still require deployment smoke tests. The existing production ZIP below remains the previous deployed version.
 
 Verify the review build with `sha256sum -c releases/insignia-stay-guest-booking-preview.sha256`. See backend `docs/GUEST_BOOKING_IMPLEMENTATION.md` for the release order and operational checks.

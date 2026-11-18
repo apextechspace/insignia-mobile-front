@@ -8,6 +8,7 @@ import { guestAccess } from '../services/guestAccess';
 import { bookingService } from '../services/bookings';
 import { paymentService } from '../services/payment';
 import api from '../services/api';
+import RoomDiscountBadge from '../components/RoomDiscountBadge';
 
 const day = (offset: number) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
@@ -132,6 +133,7 @@ export default function BookOnline() {
         {!!item.image && <Image source={{ uri: item.image }} style={{ height: 180, width: '100%', borderRadius: 10 }} />}
         <Text style={s.subtitle}>{item.name}</Text><Text style={s.body}>{item.type} · {item.nights} nights</Text>
         <Text style={s.body}>{item.description}</Text>
+        <RoomDiscountBadge room={item} />
         <Text style={s.body}>₦{Number(item.stay_total).toLocaleString()} total · ₦{Number(item.price_per_night).toLocaleString()} / night</Text>
         <Text style={{ color: '#4b1d3f' }}>{room?.id === item.id ? 'Selected' : 'Select suite'}</Text>
       </TouchableOpacity>)}

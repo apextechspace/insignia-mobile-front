@@ -8,6 +8,7 @@ import { useWishlist } from '../../hooks/useWishlist';
 
 import { roomService } from '../../services/rooms';
 import { getAmenityData } from '../../utils/amenities';
+import RoomDiscountBadge from '../../components/RoomDiscountBadge';
 
 export default function RoomSelectionScreen() {
   const { colors, fonts } = useTheme();
@@ -92,6 +93,7 @@ export default function RoomSelectionScreen() {
           </View>
         </View>
 
+        <RoomDiscountBadge room={item} />
         <View style={styles.amenities}>
           {(item.amenities || []).slice(0, 5).map((key: string, index: number) => {
             const amenity = getAmenityData(key);

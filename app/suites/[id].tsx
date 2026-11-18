@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { roomService } from '../../services/rooms';
 import { getAmenityData } from '../../utils/amenities';
 import { useWishlist } from '../../hooks/useWishlist';
+import RoomDiscountBadge from '../../components/RoomDiscountBadge';
 
 const { width } = Dimensions.get('window');
 
@@ -112,6 +113,7 @@ export default function SuiteDetailScreen() {
                         </View>
                     </View>
 
+                    <RoomDiscountBadge room={room} />
                     <Text style={[styles.description, { color: colors.text, fontFamily: fonts.body }]}>
                         {room.description}
                     </Text>
