@@ -104,6 +104,10 @@ export default function BookOnline() {
     }
   });
   const changeDates = (setter: (v: string) => void) => (value: string) => { setter(value); setRooms(null); setRoom(null); };
+  const stayLength = (item: any) => {
+    const nights = Number(item.nights) || Math.max(1, Math.round((Date.parse(checkOut) - Date.parse(checkIn)) / 86400000));
+    return `${nights} ${nights === 1 ? 'Night' : 'Nights'}`;
+  };
   const field = (label: string, value: string, change: (v: string) => void, options: any = {}) => <View style={{ gap: 8 }}><Text style={s.label}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={change} style={s.input} editable={!busy && !booking} {...options} /></View>;
   const dateField = (label: string, value: string, change: (v: string) => void, min: string) => Platform.OS === 'web'
     ? <View style={{ flex: 1, minWidth: 140, gap: 8 }}><Text style={s.label}>{label}</Text>{React.createElement('input', { type: 'date', 'aria-label': label, value, min, disabled: busy || !!booking, onChange: (e: any) => change(e.target.value), style: { padding: 14, border: '1px solid #cfc5cb', borderRadius: 10, fontSize: 16, background: '#fff', color: '#29212a', width: '100%', boxSizing: 'border-box' } })}</View>
@@ -131,14 +135,15 @@ export default function BookOnline() {
       {!booking && <TouchableOpacity accessibilityRole="button" style={s.button} disabled={busy} onPress={search}><Text style={s.buttonText}>{busy ? progress || 'Please wait…' : 'Check availability'}</Text></TouchableOpacity>}
       {(room ? [room] : rooms)?.map(item => <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Select ${item.name}`} key={item.id} disabled={busy || !!booking} onPress={() => setRoom(item)} style={[s.card, room?.id === item.id && { borderColor: '#4b1d3f', borderWidth: 2 }]}>
         {!!item.image && <Image source={{ uri: item.image }} style={{ height: 180, width: '100%', borderRadius: 10 }} />}
-        <Text style={s.subtitle}>{item.name}</Text><Text style={s.body}>{item.type} · {item.nights} nights</Text>
+        <Text style={s.subtitle}>{item.name}</Text><Text style={s.body}>{item.type} · {stayLength(item)}</Text>
         <Text style={s.body}>{item.description}</Text>
         <RoomDiscountBadge room={item} />
-        <Text style={s.body}>₦{Number(item.stay_total).toLocaleString()} total · ₦{Number(item.price_per_night).toLocaleString()} / night</Text>
-        <Text style={{ color: '#4b1d3f' }}>{room?.id === item.id ? 'Selected' : 'Select suite'}</Text>
+        <Text style={s.body}>₦{Number(item.price_per_night).toLocaleString()} / Night</Text>
+        <Text style={[s.body, { fontWeight: '700' }]}>Total: ₦{Number(item.stay_total).toLocaleString()} ({stayLength(item)})</Text>
+        <Text style={{ color: '#4b1d3f' }}>{room?.id === item.id ? 'Selected' : /suite/i.test(item.type || '') ? 'Select Suite' : 'Select Room'}</Text>
       </TouchableOpacity>)}
       {!!room && <View style={s.card}>
-        {!booking && <TouchableOpacity disabled={busy} onPress={() => setRoom(null)}><Text style={s.link}>Choose a different suite</Text></TouchableOpacity>}
+        {!booking && <TouchableOpacity disabled={busy} onPress={() => setRoom(null)}><Text style={s.link}>Choose a different room or suite</Text></TouchableOpacity>}
         <Text style={s.subtitle}>Lead guest details</Text>
         {Platform.OS === 'web' && !!checkoutLink && React.createElement('a', {
           href: checkoutLink, target: '_self', style: { color: '#4b1d3f', fontWeight: 700, padding: '12px 0' },
