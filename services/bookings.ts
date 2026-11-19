@@ -16,6 +16,7 @@ export interface BookingResponse {
     check_in: string;
     check_out: string;
     total_price: string;
+    reservation_terms?: { nights: number; cancellation_enabled: boolean; refund_deadline: string; cancellation_charge_nights: number; release_review_at?: string | null } | null;
     status: string;
     paid_at?: string | null;
     hold_expires_at?: string | null;

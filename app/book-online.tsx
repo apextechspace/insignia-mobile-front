@@ -11,6 +11,12 @@ import api from '../services/api';
 import RoomDiscountBadge from '../components/RoomDiscountBadge';
 
 const day = (offset: number) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const heldRoom = (held: any) => {
+  const nights = held.reservation_terms?.nights || Math.max(1, Math.round((Date.parse(held.check_out) - Date.parse(held.check_in)) / 86400000));
+  return { ...held.room, id: held.room_id, stay_total: held.total_price, nights,
+    price_per_night: Number(held.total_price) / nights, reservation_terms_preview: held.reservation_terms,
+    discount_enabled: false, show_vat_included: false };
+};
 
 export default function BookOnline() {
   const router = useRouter();
@@ -39,7 +45,7 @@ export default function BookOnline() {
       if (params.bookingId) {
         const held = (await bookingService.getMyBookings()).find(item => String(item.id) === params.bookingId);
         if (held && !held.paid_at && held.status === 'pending') {
-          const selected = { ...held.room, id: held.room_id, stay_total: held.total_price };
+          const selected = heldRoom(held);
           setBooking(held); setRoom(selected); setRooms([selected]); setCheckIn(held.check_in); setCheckOut(held.check_out); setGuests(String(held.guests || 1));
         }
       }
@@ -84,9 +90,14 @@ export default function BookOnline() {
       Object.entries({ room_id: room.id, check_in: checkIn, check_out: checkOut, guests,
         guest_name: name.trim(), guest_phone: phone.trim(), special_requests: notes }).forEach(([key, value]) => form.append(key, String(value)));
       held = await bookingService.createBooking(form); setBooking(held);
+      const previousTerms = room.reservation_terms_preview;
+      setRoom(heldRoom(held));
       if (Number(held.total_price) !== Number(room.stay_total)) {
-        setRoom({ ...room, stay_total: held.total_price });
+        setRoom(heldRoom(held));
         throw new Error('The current suite price has changed. Review the updated total, then continue payment.');
+      }
+      if (held.reservation_terms?.cancellation_enabled && (!previousTerms?.cancellation_enabled || Date.parse(held.reservation_terms.refund_deadline) < Date.parse(previousTerms.refund_deadline))) {
+        throw new Error('The reservation terms have changed. Please review the updated terms, then continue payment.');
       }
     }
     if (held.hold_expires_at && Date.parse(held.hold_expires_at) <= Date.now()) { setCheckoutLink(''); setBooking(null); setRoom(null); setRooms(null); throw new Error('Your checkout hold expired. Please check availability again.'); }
@@ -138,6 +149,11 @@ export default function BookOnline() {
         <Text style={s.subtitle}>{item.name}</Text><Text style={s.body}>{item.type} · {stayLength(item)}</Text>
         <Text style={s.body}>{item.description}</Text>
         <RoomDiscountBadge room={item} />
+        {item.reservation_terms_preview?.cancellation_enabled && <View style={{ gap: 6 }}>
+          <Text style={[s.body, { fontWeight: '700' }]}>Cancellation Terms</Text>
+          <Text style={s.body}>For a full refund, contact Guest Relations by {new Date(item.reservation_terms_preview.refund_deadline).toLocaleString('en-GB', { timeZone: 'Africa/Lagos' })} (Nigeria time). Later cancellations or no-shows: a charge covering the first {item.reservation_terms_preview.cancellation_charge_nights === 1 ? 'night' : 'three nights'} applies, up to the amount paid. Refunds are handled by management.</Text>
+          {!!item.reservation_terms_preview.release_review_at && <Text style={s.body}>For delayed arrivals, contact us in advance. Management may release the remaining stay from noon the day after scheduled arrival unless a later arrival is agreed.</Text>}
+        </View>}
         <Text style={s.body}>₦{Number(item.price_per_night).toLocaleString()} / Night</Text>
         <Text style={[s.body, { fontWeight: '700' }]}>Total: ₦{Number(item.stay_total).toLocaleString()} ({stayLength(item)})</Text>
         <Text style={{ color: '#4b1d3f' }}>{room?.id === item.id ? 'Selected' : /suite/i.test(item.type || '') ? 'Select Suite' : 'Select Room'}</Text>

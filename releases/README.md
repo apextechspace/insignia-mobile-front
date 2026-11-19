@@ -2,6 +2,8 @@
 
 ## Guest booking review build
 
+The reservation-policy update requires backend migration `2026_11_19_000001_add_reservation_terms`. It displays owner-enabled cancellation wording before payment and an optional VAT-inclusive label. Neither label changes the final room price. Online checkout still requires full payment; staff night-based deposits are configured in the owner's portal. Deploy both repositories before activating the new policy.
+
 The November 19 wording update formats booking cards with singular/plural Night/Nights, a separate nightly rate, `Total: ₦… (… Nights)`, and Select Room or Select Suite according to the accommodation type. It does not change pricing or deposit rules.
 
 The November 18 room-offer update adds an optional discount badge to room listings, room details, and booking search. It requires backend migration `2026_11_18_000003_add_room_discount_badges`. The owner-entered nightly price remains the final amount; the badge does not add VAT or deduct a discount. Turning the badge off leaves the price unchanged. Existing bookings and payment calculations are preserved.
