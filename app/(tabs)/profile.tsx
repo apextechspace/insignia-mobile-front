@@ -73,7 +73,8 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
             </View>
 
-            {['admin', 'ipl_admin', 'delivery_partner', 'guest_relations', 'staff'].includes(user?.role) && (
+            {['admin', 'ipl_admin', 'delivery_partner', 'guest_relations', 'staff', 'auxiliary'].includes(user?.role) && <MenuItem icon="business-outline" title="Staff Portal" subtitle="Open your authorised work dashboard" onPress={() => Linking.openURL(`${BACKEND_URL}/${['admin', 'ipl_admin'].includes(user?.role) ? 'admin' : user?.role === 'auxiliary' ? 'auxiliary' : 'operations'}`)} />}
+            {['admin', 'ipl_admin', 'delivery_partner', 'guest_relations'].includes(user?.role) && (
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: fonts.heading }]}>Executive Management</Text>
                     <MenuItem icon="business-outline" title="Apartment Management" subtitle="Maintenance & Guest Access" onPress={() => router.push('/management/apartment')} />

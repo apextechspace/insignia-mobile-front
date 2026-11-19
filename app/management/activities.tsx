@@ -83,7 +83,7 @@ export default function PersonalActivitiesScreen() {
                                             <Text style={[styles.statusText, { color: colors.tint }]}>{activity.status}</Text>
                                         </View>
                                     </View>
-                                    {activity.receipt_url && (
+                                    {activity.paid_at && (
                                         <View style={styles.receiptProof}>
                                             <Ionicons name="image-outline" size={12} color={colors.tint} />
                                             <Text style={[styles.receiptText, { color: colors.tint }]}>Payment Verified</Text>
@@ -99,10 +99,10 @@ export default function PersonalActivitiesScreen() {
                 <View style={[styles.insightBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <Ionicons name="sparkles-outline" size={24} color={colors.tint} />
                     <View style={styles.insightContent}>
-                        <Text style={[styles.insightTitle, { color: colors.text, fontFamily: fonts.heading }]}>Elite Suggestion</Text>
-                        <Text style={[styles.insightText, { color: colors.text, fontFamily: fonts.body, opacity: 0.6 }]}>Your history shows a preference for wellness. Would you like to book a private Rooftop Yoga session?</Text>
+                        <Text style={[styles.insightTitle, { color: colors.text, fontFamily: fonts.heading }]}>Explore More Services</Text>
+                        <Text style={[styles.insightText, { color: colors.text, fontFamily: fonts.body, opacity: 0.6 }]}>Browse the current services and availability for your stay.</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/services')}>
-                            <Text style={[styles.insightLink, { color: colors.tint, fontFamily: fonts.button }]}>View Wellness Services →</Text>
+                            <Text style={[styles.insightLink, { color: colors.tint, fontFamily: fonts.button }]}>View Services →</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

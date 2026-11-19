@@ -1,6 +1,7 @@
 import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { Alert } from '../../utils/alerts';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
@@ -28,6 +29,7 @@ export default function ShopPaymentScreen() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [orderDetails, setOrderDetails] = useState<any>(null);
+    const heldOrder = React.useRef<any>(null);
     const [reference] = useState(`BOUT-${((typeof name === 'string' ? name : 'ITEM')).substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
 
     const handleUpload = async () => {
@@ -61,7 +63,8 @@ export default function ShopPaymentScreen() {
             formData.append('payment_reference', reference);
             formData.append('delivery_location', String(delivery_location || 'Room Delivery'));
 
-            const createdOrder = await productService.createOrder(formData);
+            const createdOrder = heldOrder.current || await productService.createOrder(formData);
+            heldOrder.current = createdOrder;
 
             // 2. Initialize Flutterwave
             const flwData = await paymentService.initializeFlutterwave('order', createdOrder.id);
@@ -80,7 +83,7 @@ export default function ShopPaymentScreen() {
             setOrderDetails({
                 id: createdOrder.id,
                 reference: flwData.reference,
-                amount: total,
+                amount: createdOrder.total_price,
                 method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -129,7 +132,7 @@ export default function ShopPaymentScreen() {
             setOrderDetails({
                 id: createdOrder.id,
                 reference: reference,
-                amount: total,
+                amount: createdOrder.total_price,
                 method: 'bank_transfer',
                 isPaid: false,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

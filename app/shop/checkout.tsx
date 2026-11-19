@@ -9,15 +9,6 @@ import { roomService } from '../../services/rooms';
 
 const { width } = Dimensions.get('window');
 
-const RESIDENCIES = [
-    { id: '1', name: 'Atala Suite (Standard)' },
-    { id: '2', name: 'Junonia Suite (Standard)' },
-    { id: '3', name: 'Lyria Executive Room' },
-    { id: '4', name: 'Evania Executive Room' },
-    { id: '5', name: 'Morpho Suite' },
-    { id: '6', name: 'Papilio Suite' },
-];
-
 export default function CheckoutScreen() {
     const { id, name, price, image, stock } = useLocalSearchParams();
     const { colors, fonts } = useTheme();
@@ -25,21 +16,25 @@ export default function CheckoutScreen() {
     const insets = useSafeAreaInsets();
 
     const [quantity, setQuantity] = useState(1);
-    const [suites, setSuites] = useState(RESIDENCIES);
-    const [selectedSuite, setSelectedSuite] = useState(RESIDENCIES[0].id);
+    const [suites, setSuites] = useState<{ id: string; name: string }[]>([]);
+    const [selectedSuite, setSelectedSuite] = useState('');
+    const [roomsLoading, setRoomsLoading] = useState(true);
+    const [roomsError, setRoomsError] = useState('');
+    const [roomAttempt, setRoomAttempt] = useState(0);
 
     useEffect(() => {
         let isMounted = true;
+        setRoomsLoading(true); setRoomsError(''); setSuites([]); setSelectedSuite('');
         roomService.getAllRooms()
             .then((data: any) => {
-                if (!isMounted || !Array.isArray(data) || data.length === 0) return;
+                if (!isMounted) return;
+                if (!Array.isArray(data) || data.length === 0) {
+                    setRoomsError('No delivery rooms are available. Please contact Guest Relations.'); return;
+                }
                 const activeRooms = data.filter((r: any) => r.is_available !== false);
                 const mapped = (activeRooms.length > 0 ? activeRooms : data).map((r: any) => {
                     const rawName = String(r.name || `Suite ${r.id}`).trim();
-                    const type = r.type ? ` (${r.type.replace(' Room', '')})` : '';
-                    const displayName = rawName.toLowerCase().includes('suite') || rawName.toLowerCase().includes('room')
-                        ? `${rawName}${type}`
-                        : `${rawName} Suite${type}`;
+                    const displayName = `${rawName}${r.type ? ` (${r.type})` : ''}`;
                     return {
                         id: String(r.id),
                         name: displayName,
@@ -50,11 +45,10 @@ export default function CheckoutScreen() {
                     setSelectedSuite(mapped[0].id);
                 }
             })
-            .catch(() => {
-                // Silently keep default RESIDENCIES
-            });
+            .catch(() => { if (isMounted) setRoomsError('Unable to load delivery rooms. Please retry.'); })
+            .finally(() => { if (isMounted) setRoomsLoading(false); });
         return () => { isMounted = false; };
-    }, []);
+    }, [roomAttempt]);
 
     // Robust price parsing (handles numbers, formatted strings, and decimal points)
     const parsePrice = (p: any) => {
@@ -109,7 +103,9 @@ export default function CheckoutScreen() {
 
                 {/* Delivery Selection */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Deliver to Suite</Text>
+                    <Text style={[styles.sectionLabel, { color: colors.text, fontFamily: fonts.heading }]}>Deliver to Room or Suite</Text>
+                    {roomsLoading && <Text style={{ color: colors.text }}>Loading delivery rooms…</Text>}
+                    {!!roomsError && <View style={{ gap: 10 }}><Text accessibilityRole="alert" style={{ color: colors.text }}>{roomsError}</Text><TouchableOpacity accessibilityRole="button" onPress={() => setRoomAttempt(value => value + 1)}><Text style={{ color: colors.tint }}>Retry Loading Rooms</Text></TouchableOpacity></View>}
                     {suites.map((suite) => (
                         <TouchableOpacity
                             key={suite.id}
@@ -153,7 +149,8 @@ export default function CheckoutScreen() {
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 25) }]}>
                 <TouchableOpacity
-                    style={styles.proceedBtn}
+                    style={[styles.proceedBtn, { opacity: roomsLoading || !selectedSuite ? 0.5 : 1 }]}
+                    disabled={roomsLoading || !selectedSuite}
                     onPress={() => router.push({
                         pathname: '/shop/payment',
                         params: {

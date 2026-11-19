@@ -1,6 +1,7 @@
 import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { Alert } from '../../utils/alerts';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
@@ -44,6 +45,7 @@ export default function ServicePaymentScreen() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [serviceDetails, setServiceDetails] = useState<any>(null);
+    const heldBooking = React.useRef<any>(null);
     const [reference] = useState(`SRV-${((typeof name === 'string' ? name : 'SVC')).substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
 
     const cleanPriceStr = (price as string || '0').replace(/[^0-9.]/g, '');
@@ -104,7 +106,8 @@ export default function ServicePaymentScreen() {
         try {
             // 1. Create booking in pending status
             const formData = buildFormData();
-            const createdBooking = await serviceService.bookService(formData);
+            const createdBooking = heldBooking.current || await serviceService.bookService(formData);
+            heldBooking.current = createdBooking;
 
             // 2. Initialize Flutterwave
             const flwData = await paymentService.initializeFlutterwave('service_booking', createdBooking.id);
@@ -123,7 +126,7 @@ export default function ServicePaymentScreen() {
             setServiceDetails({
                 id: createdBooking.id,
                 reference: flwData.reference,
-                amount: unitPrice,
+                amount: createdBooking.total_price,
                 method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -167,7 +170,7 @@ export default function ServicePaymentScreen() {
             setServiceDetails({
                 id: createdBooking.id,
                 reference: reference,
-                amount: unitPrice,
+                amount: createdBooking.total_price,
                 method: 'bank_transfer',
                 isPaid: false,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

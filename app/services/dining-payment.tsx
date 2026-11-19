@@ -1,6 +1,7 @@
 import { useManualBankDetails } from '../../config/manualBank';
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { Alert } from '../../utils/alerts';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +36,7 @@ export default function DiningPaymentScreen() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [diningDetails, setDiningDetails] = useState<any>(null);
+    const heldOrder = React.useRef<any>(null);
     const [reference] = useState(`DINE-${((typeof serviceName === 'string' ? serviceName : 'DIN')).substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`);
 
     const cartItems = useMemo<CartItem[]>(() => {
@@ -92,8 +94,8 @@ export default function DiningPaymentScreen() {
                 formData.append(`items[${index}][quantity]`, String(item.quantity));
             });
 
-            const orderResponse = await foodService.placeOrderWithReceipt(formData);
-            const createdOrder = orderResponse.data;
+            const createdOrder = heldOrder.current || (await foodService.placeOrderWithReceipt(formData)).data;
+            heldOrder.current = createdOrder;
 
             // 2. Initialize Flutterwave
             const flwData = await paymentService.initializeFlutterwave('food_order', createdOrder.id);
@@ -112,7 +114,7 @@ export default function DiningPaymentScreen() {
             setDiningDetails({
                 id: createdOrder.id,
                 reference: flwData.reference,
-                amount: numericTotal,
+                amount: createdOrder.total_amount,
                 method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -171,7 +173,7 @@ export default function DiningPaymentScreen() {
             setDiningDetails({
                 id: createdOrder.id,
                 reference: reference,
-                amount: numericTotal,
+                amount: createdOrder.total_amount,
                 method: 'bank_transfer',
                 isPaid: false,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

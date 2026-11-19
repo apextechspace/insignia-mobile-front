@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '../../components/DateTimePicker';
 import { sessionService } from '../../services/session';
 
 export default function BookingScreen() {
@@ -19,10 +19,10 @@ export default function BookingScreen() {
     const [checkOut, setCheckOut] = useState(new Date(new Date().setDate(new Date().getDate() + 3)));
     const [showPicker, setShowPicker] = useState<'in' | 'out' | null>(null);
 
-    const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
-
-    const checkInStr = checkIn.toISOString().split('T')[0];
-    const checkOutStr = checkOut.toISOString().split('T')[0];
+    const localDay = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const checkInStr = localDay(checkIn);
+    const checkOutStr = localDay(checkOut);
+    const nights = Math.max(1, Math.round((Date.parse(checkOutStr) - Date.parse(checkInStr)) / 86400000));
     const displayCheckIn = checkIn.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
     const displayCheckOut = checkOut.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 

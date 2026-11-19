@@ -1,6 +1,7 @@
 import { useManualBankDetails } from '../../config/manualBank';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { Alert } from '../../utils/alerts';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -87,7 +88,7 @@ export default function PaymentScreen() {
             setBookingDetails({
                 id: createdBooking.id,
                 reference: flwData.reference,
-                amount: total,
+                amount: createdBooking.total_price,
                 method: 'flutterwave',
                 isPaid: verifyResult.is_paid,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -136,7 +137,7 @@ export default function PaymentScreen() {
             setBookingDetails({
                 id: bookingResponse.id,
                 reference: reference,
-                amount: total,
+                amount: bookingResponse.total_price,
                 method: 'bank_transfer',
                 isPaid: false,
                 confirmedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

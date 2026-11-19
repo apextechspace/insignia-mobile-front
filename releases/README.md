@@ -2,6 +2,8 @@
 
 ## Guest booking review build
 
+The November 19 launch audit build adds functioning web alerts/date selection, safe shop room loading, pending-record reuse on payment retries, actual server amounts on legacy success screens and WhatsApp handoff for quote-only services. It requires the matching backend audit release. See backend `LAUNCH_AUDIT_2026_11_19.md` for verification and remaining live acceptance checks.
+
 The reservation-policy update requires backend migration `2026_11_19_000001_add_reservation_terms`. It displays owner-enabled cancellation wording before payment and an optional VAT-inclusive label. Neither label changes the final room price. Online checkout still requires full payment; staff night-based deposits are configured in the owner's portal. Deploy both repositories before activating the new policy.
 
 The November 19 wording update formats booking cards with singular/plural Night/Nights, a separate nightly rate, `Total: ₦… (… Nights)`, and Select Room or Select Suite according to the accommodation type. It does not change pricing or deposit rules.

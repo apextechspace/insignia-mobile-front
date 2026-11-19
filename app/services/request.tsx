@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Linking } from 'react-native';
+import { Alert } from '../../utils/alerts';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '../../components/DateTimePicker';
 import { serviceService } from '../../services/services';
 
 const { width } = Dimensions.get('window');
@@ -95,6 +96,14 @@ export default function ServiceRequestScreen() {
     const handleProceed = () => {
         if (service?.requires_variant && !selectedVariant) {
             Alert.alert('Selection Required', 'Please select a variant before proceeding.');
+            return;
+        }
+        if (Number(selectedVariant ? selectedVariant.price : service?.price) <= 0) {
+            if (!String(service?.inquiry_url || '').startsWith('https://wa.me/')) {
+                Alert.alert('Quote Required', 'Please contact Guest Relations for a quote before booking.'); return;
+            }
+            void Linking.openURL(`${service.inquiry_url}?text=${encodeURIComponent(`Hello, I would like a quote for ${service.name}. ${requestDetails || notes || ''}`)}`)
+                .catch(() => Alert.alert('Unable to Open WhatsApp', 'Please contact Guest Relations for your quote.'));
             return;
         }
 
@@ -361,7 +370,7 @@ export default function ServiceRequestScreen() {
                             {showPicker && (
                                 <DateTimePicker
                                     value={customDate}
-                                    mode={Platform.OS === 'ios' ? 'datetime' : pickerMode}
+                                    mode={Platform.OS === 'android' ? pickerMode : 'datetime'}
                                     is24Hour={false}
                                     onChange={handleDateChange}
                                     minimumDate={new Date()}
@@ -406,7 +415,7 @@ export default function ServiceRequestScreen() {
                     </View>
                     <TouchableOpacity style={styles.payBtn} onPress={handleProceed}>
                         <LinearGradient colors={[colors.tint, '#5D1031']} style={styles.payGradient}>
-                            <Text style={styles.payText}>{service?.type === 'request' ? 'Submit Request' : 'Pay & Book'}</Text>
+                            <Text style={styles.payText}>{Number(selectedVariant ? selectedVariant.price : service?.price) <= 0 ? 'Request a Quote via WhatsApp' : service?.type === 'request' ? 'Submit Request' : 'Pay & Book'}</Text>
                             <Ionicons name={service?.type === 'request' ? "paper-plane" : "shield-checkmark"} size={18} color="#FFF" style={{ marginLeft: 8 }} />
                         </LinearGradient>
                     </TouchableOpacity>
